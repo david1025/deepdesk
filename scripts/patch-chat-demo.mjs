@@ -753,4 +753,22 @@ export = styles
 }
 
 
+
+// V4-Pro is text-only. Block local attachments before upload and guard already queued drafts.
+{
+  const file = 'src/components/chatInput/ChatInput.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  const acceptFiles = (files: File[]) => {\n    if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {\n      return\n    }",
+    "  const acceptFiles = (files: File[]) => {\n    if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {\n      return\n    }\n    if (useSettings.getState().model === 'deepseek-v4-pro') {\n      showToast({ key: 'modelProTextOnly', type: 'error' })\n      return\n    }", file)
+  s = replaceOnce(s,
+    "    if (\n      useChatStore.getState().importingHistory ||\n      voice.status !== 'idle' ||\n      !prepareDraftMessage(getDraft(sessionId), useUploads.getState().tasks)\n    ) {\n      return\n    }",
+    "    if (\n      useChatStore.getState().importingHistory ||\n      voice.status !== 'idle' ||\n      !prepareDraftMessage(getDraft(sessionId), useUploads.getState().tasks)\n    ) {\n      return\n    }\n    if (useSettings.getState().model === 'deepseek-v4-pro' && attachments.length > 0) {\n      showToast({ key: 'modelProTextOnly', type: 'error' })\n      return\n    }", file)
+  s = replaceOnce(s,
+    "            disabled={importingHistory}\n            onClick={() => ensureApiKey() && fileInputRef.current?.click()}",
+    "            disabled={importingHistory || useSettings.getState().model === 'deepseek-v4-pro'}\n            onClick={() => ensureApiKey() && fileInputRef.current?.click()}", file)
+  await write(file, s)
+}
+
+
 console.log('DeepDesk Chat Demo patches applied.')
