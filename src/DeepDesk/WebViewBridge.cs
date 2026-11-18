@@ -62,6 +62,17 @@ internal sealed class WebViewBridge
                     await _api.TestKeyAsync(CancellationToken.None);
                     Reply(requestId, true, new { valid = true });
                     break;
+                case "speech.transcribe":
+                    if (!_credentials.Exists) throw new ApiServiceException("API_KEY_MISSING", "请先配置 API Key。");
+                    if (!payload.TryGetProperty("audioBase64", out var audioValue) ||
+                        audioValue.ValueKind != JsonValueKind.String)
+                        throw new ApiServiceException("INVALID_REQUEST", "录音数据无效。");
+                    byte[] audioBytes;
+                    try { audioBytes = Convert.FromBase64String(audioValue.GetString() ?? ""); }
+                    catch (FormatException) { throw new ApiServiceException("INVALID_REQUEST", "录音数据编码无效。"); }
+                    var transcript = await _api.TranscribeAsync(audioBytes, CancellationToken.None);
+                    Reply(requestId, true, new { text = transcript });
+                    break;
                 case "api.cancel":
                     var target = payload.GetProperty("targetRequestId").GetString();
                     if (target is not null && _requests.TryGetValue(target, out var cts)) cts.Cancel();
