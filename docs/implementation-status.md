@@ -30,7 +30,8 @@
 - [ ] Port remaining upstream DeepSeek chat-demo components and interaction details.
 - [ ] Add validated file upload lifecycle and attachment previews.
 - [ ] Add history ZIP backup/restore with transactional import.
-- [ ] Add signed reproducible installer, upgrade/uninstall QA, and auto-update.
+- [x] Publish self-contained win-x64 build to GitHub Actions artifact (14-day retention).
+- [ ] Add signed installer, upgrade/uninstall QA, and auto-update.
 - [ ] Add automated protocol tests and Windows UI smoke tests.
 
 The current implementation is a working-in-progress foundation. CI compilation does not replace runtime tests against a real DeepSeek API key and Windows microphone.
