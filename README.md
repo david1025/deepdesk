@@ -6,7 +6,7 @@ A lightweight native Windows AI desktop client with local-first storage and brin
 
 ## Status
 
-Early development. The first milestone establishes the Windows desktop shell, WebView2 local UI, a restricted native bridge, DPAPI-backed API key storage, and DeepSeek streaming chat.
+Early development. The current milestone includes the Windows desktop shell, WebView2 local UI, a restricted native bridge, DPAPI-backed API key storage, DeepSeek Anthropic-compatible streaming chat, Markdown rendering, and ASR voice input. It is still under active development.
 
 ## Architecture
 
