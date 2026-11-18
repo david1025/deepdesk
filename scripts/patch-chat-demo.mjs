@@ -630,4 +630,127 @@ export = styles
   await write(file, s)
 }
 
+
+// ---------- Model selection and reasoning effort ----------
+{
+  const file = 'src/services/api/types.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'",
+    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'\nexport type ReasoningEffort = 'none' | 'low' | 'high' | 'max'", file)
+  s = replaceOnce(s,
+    "  thinking: { type: 'enabled' | 'disabled' }\n  tools:",
+    "  thinking?: { type: 'enabled' | 'disabled' }\n  output_config?: { effort: ReasoningEffort }\n  tools:", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/services/settings.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import type { TtsVoice } from './api/speech.js'\n",
+    "import type { TtsVoice } from './api/speech.js'\nimport type { ChatModel, ReasoningEffort } from './api/types.js'\n", file)
+  s = replaceOnce(s,
+    "  ttsVoice: TtsVoice\n  thinking: boolean",
+    "  ttsVoice: TtsVoice\n  model: ChatModel\n  reasoningEffort: ReasoningEffort\n  thinking: boolean", file)
+  s = replaceOnce(s,
+    "  ttsVoice: 'chat-demo:tts-voice',\n  thinking:",
+    "  ttsVoice: 'chat-demo:tts-voice',\n  model: 'deepdesk:model',\n  reasoningEffort: 'deepdesk:reasoning-effort',\n  thinking:", file)
+  s = replaceOnce(s,
+    "const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')",
+    "const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')\n\nconst initialModel = (): ChatModel =>\n  read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash'\n\nconst initialReasoningEffort = (): ReasoningEffort => {\n  const saved = read(KEYS.reasoningEffort)\n  if (saved === 'none' || saved === 'low' || saved === 'high' || saved === 'max') return saved\n  // Migrate an explicitly saved legacy DeepThink switch; a fresh install defaults to High.\n  return read(KEYS.thinking) === 'false' ? 'none' : 'high'\n}\n\nconst initialEffort = initialReasoningEffort()", file)
+  s = replaceOnce(s,
+    "  ttsVoice: initialTtsVoice(),\n  thinking: read(KEYS.thinking) === 'true',",
+    "  ttsVoice: initialTtsVoice(),\n  model: initialModel(),\n  reasoningEffort: initialEffort,\n  thinking: initialEffort !== 'none',", file)
+  s = replaceOnce(s,
+    "export const setThinking = (thinking: boolean) => {\n  write(KEYS.thinking, String(thinking))\n  useSettings.setState({ thinking })\n}",
+    "export const setModel = (model: ChatModel) => {\n  write(KEYS.model, model)\n  useSettings.setState({ model })\n}\n\nexport const setReasoningEffort = (reasoningEffort: ReasoningEffort) => {\n  write(KEYS.reasoningEffort, reasoningEffort)\n  write(KEYS.thinking, String(reasoningEffort !== 'none'))\n  useSettings.setState({ reasoningEffort, thinking: reasoningEffort !== 'none' })\n}\n\nexport const setThinking = (thinking: boolean) => setReasoningEffort(thinking ? 'high' : 'none')", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/services/chat/types.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  MessageUsage,\n  ServerToolBlock,",
+    "  MessageUsage,\n  ReasoningEffort,\n  ServerToolBlock,", file)
+  s = replaceOnce(s,
+    "  /** 请求时是否开启深度思考 */\n  thinking?: boolean",
+    "  /** 请求时的推理强度；旧历史记录可能没有该字段。 */\n  reasoningEffort?: ReasoningEffort\n  /** 请求时是否开启深度思考，保留用于兼容旧历史记录。 */\n  thinking?: boolean", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/services/chat/store.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "const createReply = (): AssistantMessage => {\n  const { thinking, search } = useSettings.getState()",
+    "const createReply = (): AssistantMessage => {\n  const { model, reasoningEffort, search } = useSettings.getState()", file)
+  s = replaceOnce(s,
+    "    model: MODEL,\n    thinking,\n    search,",
+    "    model,\n    reasoningEffort,\n    thinking: reasoningEffort !== 'none',\n    search,", file)
+  s = replaceOnce(s,
+    "  const { thinking, search } = useSettings.getState()\n  const reply: AssistantMessage = {",
+    "  const { model, reasoningEffort, search } = useSettings.getState()\n  const legacyEffort = previous.thinking === false ? 'none' : previous.thinking === true ? 'high' : reasoningEffort\n  const reply: AssistantMessage = {", file)
+  s = replaceOnce(s,
+    "    model: previous.model ?? MODEL,\n    thinking: previous.thinking ?? thinking,",
+    "    model: previous.model ?? model ?? MODEL,\n    reasoningEffort: previous.reasoningEffort ?? legacyEffort,\n    thinking: previous.thinking ?? (legacyEffort !== 'none'),", file)
+  s = replaceOnce(s,
+    "        const messages = toRequestMessages(\n          prepared.history,\n          prepared.question,\n          prepared.prefix,\n          initial.thinking ?? false,\n          latestReminder\n        )",
+    "        const reasoningEffort = initial.reasoningEffort ?? (initial.thinking === false ? 'none' : initial.thinking === true ? 'high' : useSettings.getState().reasoningEffort)\n        const messages = toRequestMessages(\n          prepared.history,\n          prepared.question,\n          prepared.prefix,\n          reasoningEffort !== 'none',\n          latestReminder\n        )", file)
+  s = replaceOnce(s,
+    "            model: initial.model ?? MODEL,\n            system: SYSTEM_PROMPT,\n            messages,\n            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },",
+    "            model: initial.model ?? useSettings.getState().model ?? MODEL,\n            system: SYSTEM_PROMPT,\n            messages,\n            output_config: { effort: reasoningEffort },", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/components/chatInput/ChatInput.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  IconStopFill16,\n  IconThinkOutline14,\n",
+    "  IconStopFill16,\n", file)
+  s = replaceOnce(s,
+    "import { setSearch, setThinking, useSettings } from '../../services/settings.js'",
+    "import { setSearch, useSettings } from '../../services/settings.js'", file)
+  s = replaceOnce(s,
+    "import styles from './ChatInput.module.css'\n",
+    "import styles from './ChatInput.module.css'\nimport { ModelSettings } from './ModelSettings.js'\n", file)
+  s = replaceOnce(s,
+    "  const thinking = useSettings((state) => state.thinking)\n", "", file)
+  s = replaceOnce(s, "        {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}\n        <div ref={togglesRef} className={styles.toggles}>\n          <Tooltip content={t('deactivatedThinkTooltip')}>\n            <button\n              type=\"button\"\n              className={clsx(styles.toggle, thinking && styles.selected)}\n              aria-label={t('thinkingSwitch')}\n              aria-pressed={thinking}\n              onClick={() => setThinking(!thinking)}\n            >\n              <IconThinkOutline14 />\n              <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>\n            </button>\n          </Tooltip>\n          <Tooltip content={t('deactivatedSearchTooltip')}>", "        {/* 模型与推理等级选择；搜索仍保留独立开关 */}\n        <div ref={togglesRef} className={styles.toggles}>\n          <ModelSettings />\n          <Tooltip content={t('deactivatedSearchTooltip')}>", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/components/chatInput/ModelSettings.tsx'
+  await write(file, "import { useState } from 'react'\nimport { createPortal } from 'react-dom'\nimport { useTranslate } from '../../i18n/index.js'\nimport type { ChatModel } from '../../services/api/types.js'\nimport { setModel, setReasoningEffort, useSettings, type ReasoningEffort } from '../../services/settings.js'\nimport { IconCheckOutline16, IconChevronDownOutline14 } from '../base/icons.js'\nimport { useAnchoredPosition, useDismiss } from '../base/anchored.js'\nimport styles from './ModelSettings.module.css'\n\nconst modelOptions: { value: ChatModel; label: string }[] = [\n  { value: 'deepseek-flash', label: 'DeepSeek-V4.1-Flash' },\n  { value: 'deepseek-v4-pro', label: 'DeepSeek-V4-Pro' },\n]\n\nconst effortLabels: Record<ReasoningEffort, 'settingsEffortOff' | 'settingsEffortLow' | 'settingsEffortHigh' | 'settingsEffortMax'> = {\n  none: 'settingsEffortOff',\n  low: 'settingsEffortLow',\n  high: 'settingsEffortHigh',\n  max: 'settingsEffortMax',\n}\n\nexport const ModelSettings = () => {\n  const t = useTranslate()\n  const model = useSettings((state) => state.model)\n  const reasoningEffort = useSettings((state) => state.reasoningEffort)\n  const [open, setOpen] = useState(false)\n  const [expanded, setExpanded] = useState<'model' | 'effort' | null>(null)\n  const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLButtonElement, HTMLDivElement>(\n    open,\n    { side: 'top', align: 'start', offset: 8 }\n  )\n  useDismiss(open, [anchorRef, floatingRef], () => {\n    setOpen(false)\n    setExpanded(null)\n  }, { captureEscape: true })\n\n  const currentModel = modelOptions.find((option) => option.value === model)?.label ?? modelOptions[0].label\n  const currentEffort = t(effortLabels[reasoningEffort])\n\n  const chooseModel = (value: ChatModel) => {\n    setModel(value)\n    setExpanded(null)\n  }\n  const chooseEffort = (value: ReasoningEffort) => {\n    setReasoningEffort(value)\n    setExpanded(null)\n  }\n\n  return (\n    <>\n      <button\n        ref={anchorRef}\n        type=\"button\"\n        className={styles.trigger}\n        aria-haspopup=\"dialog\"\n        aria-expanded={open}\n        aria-label={t('modelSettingsTitle')}\n        title={currentModel + ' · ' + currentEffort}\n        onClick={() => {\n          setOpen((value) => !value)\n          setExpanded(null)\n        }}\n      >\n        <span className={styles.modelName}>{currentModel}</span>\n        <span className={styles.effortName}>{currentEffort}</span>\n        <IconChevronDownOutline14 />\n      </button>\n      {open\n        ? createPortal(\n            <div\n              ref={floatingRef}\n              className={styles.panel}\n              style={position ?? undefined}\n              role=\"dialog\"\n              aria-label={t('modelSettingsTitle')}\n            >\n              <div className={styles.row}>\n                <span className={styles.label}>{t('settingsModelLabel')}</span>\n                <button\n                  type=\"button\"\n                  className={styles.rowTrigger}\n                  aria-expanded={expanded === 'model'}\n                  onClick={() => setExpanded((value) => value === 'model' ? null : 'model')}\n                >\n                  <span>{currentModel}</span>\n                  <IconChevronDownOutline14 />\n                </button>\n              </div>\n              {expanded === 'model' ? (\n                <div className={styles.options} role=\"listbox\" aria-label={t('settingsModelLabel')}>\n                  {modelOptions.map((option) => (\n                    <button\n                      key={option.value}\n                      type=\"button\"\n                      role=\"option\"\n                      aria-selected={option.value === model}\n                      className={styles.option}\n                      onClick={() => chooseModel(option.value)}\n                    >\n                      <span>{option.label}</span>\n                      {option.value === model ? <IconCheckOutline16 /> : null}\n                    </button>\n                  ))}\n                </div>\n              ) : null}\n              <div className={styles.row}>\n                <span className={styles.label}>{t('settingsReasoningEffortLabel')}</span>\n                <button\n                  type=\"button\"\n                  className={styles.rowTrigger}\n                  aria-expanded={expanded === 'effort'}\n                  onClick={() => setExpanded((value) => value === 'effort' ? null : 'effort')}\n                >\n                  <span>{currentEffort}</span>\n                  <IconChevronDownOutline14 />\n                </button>\n              </div>\n              {expanded === 'effort' ? (\n                <div className={styles.options} role=\"listbox\" aria-label={t('settingsReasoningEffortLabel')}>\n                  {(['none', 'low', 'high', 'max'] as ReasoningEffort[]).map((option) => (\n                    <button\n                      key={option}\n                      type=\"button\"\n                      role=\"option\"\n                      aria-selected={option === reasoningEffort}\n                      className={styles.option}\n                      onClick={() => chooseEffort(option)}\n                    >\n                      <span>{t(effortLabels[option])}</span>\n                      {option === reasoningEffort ? <IconCheckOutline16 /> : null}\n                    </button>\n                  ))}\n                </div>\n              ) : null}\n              <p className={styles.hint}>\n                {t(model === 'deepseek-v4-pro' ? 'settingsModelProHint' : 'settingsModelFlashHint')}\n              </p>\n            </div>,\n            document.body\n          )\n        : null}\n    </>\n  )\n}\n")
+}
+{
+  const file = 'src/components/chatInput/ModelSettings.module.css'
+  await write(file, ".trigger {\n  display: inline-flex;\n  align-items: center;\n  flex-shrink: 0;\n  gap: 7px;\n  max-width: 240px;\n  height: 34px;\n  padding: 0 10px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 18px;\n  background: var(--dsw-specific-selector);\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 12px;\n  line-height: 18px;\n  cursor: pointer;\n  white-space: nowrap;\n}\n.trigger:hover { background: var(--dsw-alias-interactive-bg-hover); }\n.modelName { overflow: hidden; text-overflow: ellipsis; }\n.effortName { color: var(--dsw-alias-label-secondary); }\n.panel {\n  position: fixed;\n  z-index: 1100;\n  box-sizing: border-box;\n  width: 278px;\n  padding: 9px 10px;\n  border: 1px solid var(--dsw-alias-border-inverted);\n  border-radius: 14px;\n  background: var(--dsw-specific-menu);\n  color: var(--dsw-alias-label-primary);\n  box-shadow: 0 0 1px rgba(0,0,0,.2), 0 12px 32px rgba(0,0,0,.1);\n}\n.row {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  min-height: 40px;\n}\n.label {\n  flex-shrink: 0;\n  color: var(--dsw-alias-label-secondary);\n  font-size: 13px;\n}\n.rowTrigger {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  width: 178px;\n  min-width: 0;\n  min-height: 34px;\n  padding: 0 9px;\n  border: 0;\n  border-radius: 9px;\n  background: var(--dsw-specific-selector);\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 12px;\n  cursor: pointer;\n}\n.rowTrigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.options {\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n  margin: 1px 0 5px 76px;\n  padding: 4px;\n  border-radius: 10px;\n  background: var(--dsw-specific-selector);\n}\n.option {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  min-height: 34px;\n  padding: 4px 8px;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 12px;\n  text-align: left;\n  cursor: pointer;\n}\n.option:hover, .option[aria-selected=\"true\"] { background: var(--dsw-alias-interactive-bg-hover); }\n.hint {\n  margin: 6px 2px 2px;\n  color: var(--dsw-alias-label-tertiary);\n  font-size: 10px;\n  line-height: 1.5;\n}\n")
+}
+{
+  const file = 'src/components/chatInput/ModelSettings.module.css.d.ts'
+  await write(file, "declare const styles: {\n  readonly \"trigger\": string;\n  readonly \"modelName\": string;\n  readonly \"effortName\": string;\n  readonly \"panel\": string;\n  readonly \"row\": string;\n  readonly \"label\": string;\n  readonly \"rowTrigger\": string;\n  readonly \"options\": string;\n  readonly \"option\": string;\n  readonly \"hint\": string;\n}\nexport = styles\n")
+}
+
+{
+  const file = 'src/i18n/zh.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  settingsTtsVoice: '朗读音色',",
+    "  modelSettingsTitle: '模型设置',\n  settingsModelLabel: '模型',\n  settingsReasoningEffortLabel: '推理等级',\n  settingsEffortOff: 'Off',\n  settingsEffortLow: 'Low',\n  settingsEffortHigh: 'High',\n  settingsEffortMax: 'Max',\n  settingsModelFlashHint: 'DeepSeek-V4.1-Flash 支持文本和图片输入。',\n  settingsModelProHint: 'DeepSeek-V4-Pro 当前仅支持文本输入。',\n  settingsTtsVoice: '朗读音色',", file)
+  await write(file, s)
+}
+{
+  const file = 'src/i18n/en.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  settingsTtsVoice: 'Read-aloud voice',",
+    "  modelSettingsTitle: 'Model settings',\n  settingsModelLabel: 'Model',\n  settingsReasoningEffortLabel: 'Reasoning effort',\n  settingsEffortOff: 'Off',\n  settingsEffortLow: 'Low',\n  settingsEffortHigh: 'High',\n  settingsEffortMax: 'Max',\n  settingsModelFlashHint: 'DeepSeek-V4.1-Flash supports text and image input.',\n  settingsModelProHint: 'DeepSeek-V4-Pro currently supports text input only.',\n  settingsTtsVoice: 'Read-aloud voice',", file)
+  await write(file, s)
+}
+
+
 console.log('DeepDesk Chat Demo patches applied.')
