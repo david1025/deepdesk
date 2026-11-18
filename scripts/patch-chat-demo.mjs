@@ -616,4 +616,12 @@ export = styles
 }
 
 
+
+{
+  const file = 'src/components/sider/Sider.module.css'
+  let s = await read(file)
+  s = replaceOnce(s, "  width: 100%;\n  margin-block: auto;", "  width: auto;\n  flex: 1;\n  min-width: 0;\n  margin-block: auto;", file)
+  await write(file, s)
+}
+
 console.log('DeepDesk Chat Demo patches applied.')
