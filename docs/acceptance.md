@@ -1,51 +1,82 @@
-# Acceptance checklist — official DeepSeek Chat Demo parity
+# Stage 3 — Windows functional acceptance
 
-## Source and visual baseline
+## Acceptance baseline
 
-- [ ] Confirm build metadata reports the pinned upstream commit.
-- [ ] Compare welcome screen, sidebar, session list, composer, message view, settings, dialogs, menus, icons, typography, spacing, themes, and responsive behavior with the official demo at the same viewport size.
-- [ ] Confirm no custom replacement UI is rendered.
+- Repository: `david1025/deepdesk`
+- Branch: `feature/windows-native-shell`
+- Upstream UI: `deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c`
+- Platform target: Windows 10/11 x64 + WebView2
+- Rule: a successful CI build is not evidence that a runtime feature passed.
 
-## Conversation lifecycle
+## Status reported by the product owner
 
-- [ ] Create multiple conversations; verify automatic titles.
+These are user-reported manual checks, not independently reproduced by CI:
+
+- [x] Send chat messages and receive responses.
+- [x] Switch between the available models.
+- [x] Import ZIP history in replace mode.
+- [x] Import ZIP history in merge mode.
+- [x] Export chat history.
+
+## Stage 3 code-review fixes
+
+- [x] Windows API-key replacement now sends the new key to the native bridge first. The host validates the supplied key directly, then stores it with DPAPI. It no longer validates the replacement key through a renderer request that may have the previous key injected by WebView2.
+- [x] Professional mode request mapping: `output_config.effort` controls the thinking mode; `none` disables thinking and `low/high/max` enable it. The legacy `thinking.type` toggle remains the normal-mode path.
+- [x] This mapping follows the current official DeepSeek Anthropic Messages API documentation; explicit `thinking.type` takes precedence over `output_config.effort`, so professional-mode requests must omit `thinking`.
+
+## Windows manual acceptance still required
+
+Run on the target Windows machine with a real API key. Record app version, Windows version, WebView2 runtime version, package type, display resolution, and date.
+
+### Chat lifecycle
+- [ ] Create two or more conversations; verify titles, ordering, and switching.
 - [ ] Rename and delete conversations.
-- [ ] Edit a user prompt, regenerate a response, and switch between response branches.
-- [ ] Stop generation and continue eligible replies.
-- [ ] Restart the desktop app and confirm sessions and drafts persist.
+- [ ] Edit a user prompt, regenerate, and switch response branches.
+- [ ] Stop generation; verify only the selected request is cancelled.
+- [ ] Continue an eligible truncated/stopped response.
+- [ ] Restart the app; verify chats, drafts, settings, and attachments persist.
 
-## Model and tools
+### Models and thinking
+- [ ] Normal mode: thinking off sends `thinking.type=disabled`.
+- [ ] Normal mode: thinking on sends `thinking.type=enabled`.
+- [ ] Professional mode: Off sends `output_config.effort=none` and omits `thinking`.
+- [ ] Professional mode: Low/High/Max sends the selected `output_config.effort` and omits `thinking`.
+- [ ] Professional mode hides the normal thinking toggle; exiting restores it.
+- [ ] Flash and V4-Pro both respond; verify V4-Pro's image-input limitation is explained in UI.
+- [ ] Verify the selected model and effort persist after restart.
 
-- [ ] Configure API key and model settings.
-- [ ] Streaming response and deep thinking.
-- [ ] Smart search, link reading, and source citations.
-- [ ] Verify API errors, rate limits, cancellation, and long responses.
+### API key and account usage
+- [ ] Set a valid key on a clean profile.
+- [ ] Replace a valid key with another valid key.
+- [ ] Attempt to replace with an invalid key; verify the previous valid key remains stored.
+- [ ] Clear the key; verify chat and balance actions require reconfiguration.
+- [ ] Verify API balance refresh and multi-currency display.
+- [ ] Compare displayed token counts with the response usage fields.
+- [ ] Verify cost estimates are explicitly labeled as local estimates, not provider billing records.
+- [ ] Verify rate-limit, insufficient-balance, invalid-key, timeout, and offline states.
 
-## Attachments and speech
+### Tools, files, and speech
+- [ ] Smart search returns source cards with working links.
+- [ ] Reading a user-provided link works and rejects unsafe schemes.
+- [ ] Upload image/document through picker, paste, and drag/drop.
+- [ ] Reopen an old conversation and verify attachments are still available.
+- [ ] Voice input: grant microphone permission, record, transcribe, and insert text.
+- [ ] Read-aloud: start, stop, and change supported voice.
+- [ ] Verify file-size limits and clear errors for failed uploads/transcription/synthesis.
 
-- [ ] Upload through file picker, paste, and drag/drop.
-- [ ] Verify file cards and server upload lifecycle.
-- [ ] Voice input and recording spectrum.
-- [ ] Read replies aloud and stop playback.
-
-## Rendering and settings
-
-- [ ] Markdown, code highlighting, KaTeX, and Mermaid.
-- [ ] Simplified Chinese and English.
-- [ ] Light and dark themes.
-- [ ] Location settings and mobile/responsive layout where applicable.
-- [ ] ZIP history export/import; validate that failed import does not replace existing data.
-- [ ] Delete all chats without deleting API key/settings.
-
-## Windows integration
-
-- [ ] API key, settings, chats, attachments, and drafts remain under the local WebView2 profile.
-- [ ] External HTTP(S) links open in the default browser.
-- [ ] Microphone permission works and is not granted to unrelated origins.
-- [ ] Downloads, file picker, clipboard paste, and app restart work.
-- [ ] Lite package starts with .NET 10 Desktop Runtime installed.
+### Rendering and Windows integration
+- [ ] Markdown, code highlighting, KaTeX, Mermaid, citations, and long responses render.
+- [ ] Chinese/English and light/dark/system theme work.
+- [ ] External HTTP(S) links open in the default browser; non-web schemes are blocked.
+- [ ] Clipboard copy/paste and file downloads work.
+- [ ] WebView2 profile and DPAPI credential survive restart.
+- [ ] Lite package starts with required .NET Desktop Runtime installed.
 - [ ] Self-contained package starts on a clean Windows 10/11 x64 machine with WebView2 Runtime.
+- [ ] Upgrade install preserves local data; uninstall does not delete user data.
 
-## Acceptance evidence
+## Evidence log
 
-Record Windows version, WebView2 version, upstream commit, package type, screen resolution, test date, and pass/fail notes. Do not mark parity accepted based on CI compilation alone.
+| Date | Build / commit | Package | Test | Result | Notes |
+|---|---|---|---|---|---|
+| 2026-11-18 | owner-reported current build | Windows | Chat, model switch, ZIP merge/replace import, export | Pass (reported) | Not independently reproduced in CI |
+| Pending | pending | pending | Remaining checklist | Not run | Requires Windows desktop and real API key |
