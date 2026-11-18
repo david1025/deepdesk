@@ -29,6 +29,44 @@ internal sealed class DeepSeekApiService
             throw new ApiServiceException("API_REQUEST_FAILED", $"连接测试失败（HTTP {(int)response.StatusCode}）。");
     }
 
+    public async Task<byte[]> SynthesizeAsync(string text, string voice, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(text) || text.Length > 12000)
+            throw new ApiServiceException("INVALID_REQUEST", "朗读文本为空或超过 12000 个字符。");
+        if (voice is not ("stella" or "tide"))
+            throw new ApiServiceException("INVALID_REQUEST", "不支持的朗读音色。");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "v1/tools/tts");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _credentials.ReadApiKey());
+        request.Content = new StringContent(JsonSerializer.Serialize(new
+        {
+            text, voice_id = voice, format = "pcm", filter_markdown = true
+        }), Encoding.UTF8, "application/json");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromMinutes(2));
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new ApiServiceException("API_AUTH_FAILED", "API Key 无效或无权访问。");
+            if ((int)response.StatusCode == 429)
+                throw new ApiServiceException("API_RATE_LIMITED", "语音合成请求过于频繁。");
+            throw new ApiServiceException("API_REQUEST_FAILED", $"语音合成失败（HTTP {(int)response.StatusCode}）。");
+        }
+        await using var stream = await response.Content.ReadAsStreamAsync(timeout.Token);
+        using var output = new MemoryStream();
+        var buffer = new byte[32 * 1024];
+        int read;
+        while ((read = await stream.ReadAsync(buffer, timeout.Token)) > 0)
+        {
+            if (output.Length + read > 8 * 1024 * 1024)
+                throw new ApiServiceException("API_PROTOCOL_ERROR", "朗读音频超过 8 MiB 限制。");
+            output.Write(buffer, 0, read);
+        }
+        if (output.Length == 0 || output.Length % 2 != 0)
+            throw new ApiServiceException("API_PROTOCOL_ERROR", "语音合成返回的 PCM 数据无效。");
+        return output.ToArray();
+    }
+
     public async Task<string> TranscribeAsync(byte[] wav, CancellationToken cancellationToken)
     {
         if (wav.Length < 44 || wav.Length > 8 * 1024 * 1024)
