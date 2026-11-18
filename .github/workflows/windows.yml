@@ -5,14 +5,17 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+
 concurrency:
   group: deepdesk-windows-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   build:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Checkout official DeepSeek Chat Demo
         uses: actions/checkout@v4
         with:
@@ -20,38 +23,49 @@ jobs:
           ref: 5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c
           path: vendor/chat-demo
           persist-credentials: false
+
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - name: Install official UI dependencies
         working-directory: vendor/chat-demo
         run: pnpm install --frozen-lockfile
+
       - name: Type-check official UI
         working-directory: vendor/chat-demo
         run: pnpm type
+
       - name: Build official DeepSeek UI
         working-directory: vendor/chat-demo
         run: pnpm build
-        shell: bash
+
       - name: Stage official UI into desktop host
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force src/chat-ui/dist | Out-Null
-          Copy-Item vendor/chat-demo/dist/* src/chat-ui/dist/ -Recurse -Force
-          Copy-Item vendor/chat-demo/LICENSE src/chat-ui/dist/LICENSE -Force
-          Set-Content -Path src/chat-ui/dist/UPSTREAM_VERSION.txt -Value "deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c"
-      - name: Build WPF application
+          if (Test-Path "src/chat-ui/dist") { Remove-Item "src/chat-ui/dist" -Recurse -Force }
+          New-Item -ItemType Directory -Force "src/chat-ui/dist" | Out-Null
+          Copy-Item "vendor/chat-demo/dist/*" "src/chat-ui/dist/" -Recurse -Force
+          Copy-Item "vendor/chat-demo/LICENSE" "src/chat-ui/dist/LICENSE" -Force
+          Set-Content -Path "src/chat-ui/dist/UPSTREAM_VERSION.txt" -Value "deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c"
+
+      - name: Build WPF host
         run: dotnet build src/DeepDesk/DeepDesk.csproj -c Release
-      - name: Publish lightweight Windows x64 app (requires .NET 10 Desktop Runtime)
+
+      - name: Publish lightweight Windows x64 app
         run: dotnet publish src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/DeepDesk-win-x64-lite
+
       - name: Publish self-contained Windows x64 app
         run: dotnet publish src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/DeepDesk-win-x64
+
       - name: Upload lightweight Windows x64 build
         uses: actions/upload-artifact@v4
         with:
@@ -59,6 +73,7 @@ jobs:
           path: artifacts/DeepDesk-win-x64-lite/
           if-no-files-found: error
           retention-days: 14
+
       - name: Upload self-contained Windows x64 build
         uses: actions/upload-artifact@v4
         with:
