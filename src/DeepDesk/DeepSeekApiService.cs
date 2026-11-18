@@ -66,11 +66,18 @@ internal sealed class DeepSeekApiService
             {
                 using var json = JsonDocument.Parse(data);
                 if (json.RootElement.TryGetProperty("choices", out var choices) && choices.GetArrayLength() > 0 &&
-                    choices[0].TryGetProperty("delta", out var delta) &&
-                    delta.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
+                    choices[0].TryGetProperty("delta", out var delta))
                 {
-                    var text = content.GetString();
-                    if (!string.IsNullOrEmpty(text)) await onDelta(text);
+                    if (delta.TryGetProperty("reasoning_content", out var reasoning) && reasoning.ValueKind == JsonValueKind.String)
+                    {
+                        var thought = reasoning.GetString();
+                        if (!string.IsNullOrEmpty(thought)) await onDelta(thought, "reasoning");
+                    }
+                    if (delta.TryGetProperty("content", out var content) && content.ValueKind == JsonValueKind.String)
+                    {
+                        var answer = content.GetString();
+                        if (!string.IsNullOrEmpty(answer)) await onDelta(answer, "content");
+                    }
                 }
             }
             catch (JsonException)
