@@ -33,7 +33,7 @@ function App(){
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
  const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
- const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false);
+ const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false);\n const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]);
  const active=conversations.find(c=>c.id===activeId);
  const messages=active?.messages??[];
  React.useEffect(()=>{
@@ -68,6 +68,35 @@ function App(){
    }catch(e:any){setError(e.message);}
    finally{setBusy(false);setActiveRequest(null);setStreamStatus("");}
  }
+ async function toggleVoice(){
+   if(recording){
+     setRecording(false);
+     processorRef.current?.disconnect();processorRef.current=null;
+     const stream=mediaRef.current;stream?.getTracks().forEach(t=>t.stop());mediaRef.current=null;
+     const context=audioContextRef.current;audioContextRef.current=null;
+     if(!context)return;
+     const sampleRate=context.sampleRate,frames=chunksRef.current.reduce((n,c)=>n+c.length,0);
+     const pcm=new Int16Array(frames);let offset=0;
+     for(const chunk of chunksRef.current){for(let i=0;i<chunk.length;i++){const value=Math.max(-1,Math.min(1,chunk[i]));pcm[offset++]=value<0?value*32768:value*32767;}}
+     chunksRef.current=[];
+     const wav=new ArrayBuffer(44+pcm.byteLength),view=new DataView(wav);
+     const write=(at:number,value:string)=>{for(let i=0;i<value.length;i++)view.setUint8(at+i,value.charCodeAt(i));};
+     write(0,"RIFF");view.setUint32(4,36+pcm.byteLength,true);write(8,"WAVE");write(12,"fmt ");view.setUint32(16,16,true);view.setUint16(20,1,true);view.setUint16(22,1,true);view.setUint32(24,sampleRate,true);view.setUint32(28,sampleRate*2,true);view.setUint16(32,2,true);view.setUint16(34,16,true);write(36,"data");view.setUint32(40,pcm.byteLength,true);
+     new Uint8Array(wav,44).set(new Uint8Array(pcm.buffer));
+     await context.close();setTranscribing(true);setError("");
+     try{const bytes=new Uint8Array(wav);let binary="";for(let i=0;i<bytes.length;i+=0x8000)binary+=String.fromCharCode(...bytes.subarray(i,i+0x8000));const result=await invoke("speech.transcribe",{audioBase64:btoa(binary)});setInput(v=>v+(v?" ":"")+(result.text??""));}
+     catch(e:any){setError(e.message);}finally{setTranscribing(false);}
+     return;
+   }
+   if(!navigator.mediaDevices?.getUserMedia){setError("当前环境不支持麦克风录音。");return;}
+   try{
+     const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
+     const context=new AudioContext();const source=context.createMediaStreamSource(stream);const processor=context.createScriptProcessor(4096,1,1);
+     chunksRef.current=[];processor.onaudioprocess=e=>{if(recording||mediaRef.current)chunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+     source.connect(processor);processor.connect(context.destination);
+     mediaRef.current=stream;audioContextRef.current=context;processorRef.current=processor;setRecording(true);
+   }catch(e:any){setError(e.name==="NotAllowedError"?"麦克风权限被拒绝，请在 Windows 权限设置中允许麦克风。":"无法启动麦克风录音。");}
+ }
  async function stop(){if(!activeRequest)return;try{await invoke("api.cancel",{targetRequestId:activeRequest});}catch(e:any){setError(e.message);}}
  function newChat(){if(busy)return;const chatId=id();setConversations(c=>[...c,{id:chatId,title:"新对话",updatedAt:Date.now(),messages:[]}]);setActiveId(chatId);setError("");setInput("");setReasoning("");}
  const canSend=!!input.trim()&&!busy&&configured;
@@ -87,7 +116,7 @@ function App(){
     {streamStatus&&<div className="stream-status">{streamStatus}</div>}{reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
-    <div className="composer-bottom"><div className="toggles"><label><input type="checkbox" checked={thinking} onChange={e=>setThinking(e.target.checked)}/> 深度思考</label><label><input type="checkbox" checked={search} onChange={e=>setSearch(e.target.checked)}/> 联网搜索</label></div><span>Enter 发送 · Shift + Enter 换行</span>
+    <div className="composer-bottom"><div className="toggles"><label><input type="checkbox" checked={thinking} onChange={e=>setThinking(e.target.checked)}/> 深度思考</label><label><input type="checkbox" checked={search} onChange={e=>setSearch(e.target.checked)}/> 联网搜索</label></div><span>Enter 发送 · Shift + Enter 换行</span><button className={recording?"mic-button recording":"mic-button"} disabled={transcribing||busy} onClick={()=>void toggleVoice()} title={recording?"结束录音":"语音输入"}>{transcribing?"识别中…":recording?"■":"🎙"}</button>
      {busy?<button className="send stop" onClick={()=>void stop()}>■</button>:<button className="send" disabled={!canSend} onClick={()=>void send()}>↑</button>}
     </div></div><div className="footnote">AI 生成内容可能不准确。请求将直接发送至 DeepSeek 官方 API。</div></footer>
   </main>
