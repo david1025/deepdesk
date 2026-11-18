@@ -45,7 +45,19 @@ jobs:
 
       - name: Type-check official UI
         working-directory: vendor/chat-demo
-        run: pnpm type
+        shell: pwsh
+        run: |
+          pnpm type 2>&1 | Tee-Object -FilePath typecheck.log
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Upload type-check diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deepdesk-typecheck-diagnostics
+          path: vendor/chat-demo/typecheck.log
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Build official DeepSeek UI
         working-directory: vendor/chat-demo
