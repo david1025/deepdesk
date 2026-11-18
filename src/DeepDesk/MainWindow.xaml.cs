@@ -37,7 +37,7 @@ public partial class MainWindow : Window
             core.AddWebResourceRequestedFilter("https://api.deepseek.com/*", CoreWebView2WebResourceContext.All);
             core.WebResourceRequested += (_, args) =>
             {
-                if (!_credentials.Exists) return;
+                if (!_credentials.Exists || args.Request.Method.Equals("OPTIONS", StringComparison.OrdinalIgnoreCase)) return;
                 try
                 {
                     var requestUri = new Uri(args.Request.Uri);
