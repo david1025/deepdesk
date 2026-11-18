@@ -416,6 +416,9 @@ export const getNativeBalance = () => nativeRequest<{
   const file = 'src/services/chat/db.ts'
   let s = await read(file)
   s = replaceOnce(s,
+    "import { toSessionSummary, type Session, type SessionSummary } from './types.js'",
+    "import { toSessionSummary, type AssistantMessage, type Session, type SessionSummary } from './types.js'", file)
+  s = replaceOnce(s,
     "export const loadSessionIds = async (): Promise<string[]> =>",
     "export const loadAllUsageMessages = async () => {\n  const sessions = await (await getDB()).getAll('sessions')\n  return sessions.flatMap((session) => session.messages.filter((message): message is AssistantMessage => message.role === 'assistant' && !!message.usage).map((message) => ({ model: message.model, usage: message.usage, completedAt: message.completedAt ?? message.createdAt })))\n}\n\nexport const loadSessionIds = async (): Promise<string[]> =>", file)
   await write(file, s)
