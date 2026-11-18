@@ -771,4 +771,20 @@ export = styles
 }
 
 
+
+{
+  const file = 'src/i18n/zh.ts'
+  let s = await read(file)
+  s = replaceOnce(s, "  settingsModelProHint: 'DeepSeek-V4-Pro 当前仅支持文本输入。',",
+    "  settingsModelProHint: 'DeepSeek-V4-Pro 当前仅支持文本输入。',\n  modelProTextOnly: 'DeepSeek-V4-Pro 当前仅支持文本输入，请切换 Flash 后上传文件。',", file)
+  await write(file, s)
+}
+{
+  const file = 'src/i18n/en.ts'
+  let s = await read(file)
+  s = replaceOnce(s, "  settingsModelProHint: 'DeepSeek-V4-Pro currently supports text input only.',",
+    "  settingsModelProHint: 'DeepSeek-V4-Pro currently supports text input only.',\n  modelProTextOnly: 'DeepSeek-V4-Pro currently supports text input only. Switch to Flash to upload files.',", file)
+  await write(file, s)
+}
+
 console.log('DeepDesk Chat Demo patches applied.')
