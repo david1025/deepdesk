@@ -28,7 +28,7 @@ window.deepDeskReceive=(m)=>{
 };
 
 function App(){
- const [configured,setConfigured]=React.useState(false),[key,setKey]=React.useState(""),[showSettings,setShowSettings]=React.useState(false);
+ const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[messages,setMessages]=React.useState<ChatMessage[]>([]);
  const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true);
@@ -43,9 +43,8 @@ function App(){
  async function saveKey(){
    setError("");setTesting(true);
    try{
-     await invoke("settings.saveApiKey",{apiKey:key});
-     await invoke("settings.testApiKey");
-     setKey("");setConfigured(true);setShowSettings(false);
+     await invoke("settings.configureApiKey");
+     setConfigured(true);setShowSettings(false);
    }catch(e:any){setError(e.message);}
    finally{setTesting(false);}
  }
@@ -87,8 +86,8 @@ function App(){
      {busy?<button className="send stop" onClick={()=>void stop()}>■</button>:<button className="send" disabled={!canSend} onClick={()=>void send()}>↑</button>}
     </div></div><div className="footnote">AI 生成内容可能不准确。请求将直接发送至 DeepSeek 官方 API。</div></footer>
   </main>
-  {(!configured||showSettings)&&<div className="overlay"><div className="setup"><button className="close" onClick={()=>{if(configured)setShowSettings(false);}}>×</button><div className="mark large">D</div><h2>{configured?"API 设置":"连接你的 DeepSeek API"}</h2><p>输入你在 DeepSeek 开放平台创建的 API Key。密钥由 Windows DPAPI 加密保存在本机，不会传给 DeepDesk 服务器。</p><input type="password" value={key} onChange={e=>setKey(e.target.value)} placeholder="粘贴 API Key"/>
-    {error&&<div className="error">{error}</div>}<button className="primary" onClick={()=>void saveKey()} disabled={!key.trim()||testing}>{testing?"正在验证…":"安全保存并测试连接"}</button>
+  {(!configured||showSettings)&&<div className="overlay"><div className="setup"><button className="close" onClick={()=>{if(configured)setShowSettings(false);}}>×</button><div className="mark large">D</div><h2>{configured?"API 设置":"连接你的 DeepSeek API"}</h2><p>输入你在 DeepSeek 开放平台创建的 API Key。密钥由 Windows DPAPI 加密保存在本机，不会传给 DeepDesk 服务器。</p><div className="native-key-note">将打开 Windows 原生安全输入窗口。API Key 不会经过网页脚本。</div>
+    {error&&<div className="error">{error}</div>}<button className="primary" onClick={()=>void saveKey()} disabled={testing}>{testing?"正在验证…":"打开安全窗口并保存 API Key"}</button>
     <small>还没有 API Key？请前往 DeepSeek 官方开放平台申请。</small></div></div>}
  </div>;
 }
