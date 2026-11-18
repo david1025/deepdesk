@@ -1,22 +1,36 @@
 # Implementation status
 
-## Milestone 0 — repository and native proof of concept
+## Milestone 0 — Windows-native foundation
 
-- [x] Create independent repository and feature branch.
-- [x] Add product constraints and architecture documentation.
-- [x] Add WPF + WebView2 host.
-- [x] Map packaged UI through a virtual HTTPS host name.
-- [x] Add origin-checked, allowlisted WebView2 message bridge.
-- [x] Add native WPF API-key entry dialog.
-- [x] Protect API key with Windows DPAPI CurrentUser.
-- [x] Add DeepSeek API key verification and streaming chat endpoint.
-- [x] Add initial React chat shell and IndexedDB persistence for the active conversation.
-- [x] Add Windows CI build workflow.
-- [ ] Run CI and fix compile/build issues.
-- [ ] Port the full upstream chat-demo interface and feature set.
-- [ ] Add model discovery from GET /models.
-- [ ] Add conversation list, search, import/export, and full attachment lifecycle.
-- [ ] Add validated file, search, URL-reading, ASR and TTS integrations.
-- [ ] Add signed/reproducible release and auto-update flow.
+- [x] WPF + WebView2 host with packaged local UI.
+- [x] Origin-checked allowlisted native bridge.
+- [x] Native WPF API-key dialog and DPAPI CurrentUser credential storage.
+- [x] DeepSeek API key verification using GET /models.
+- [x] DeepSeek Anthropic-compatible Messages API with incremental SSE parsing.
+- [x] Thinking and answer deltas rendered separately.
+- [x] Search and URL-reading tool declarations with progress feedback.
+- [x] IndexedDB conversation persistence and conversation switching.
+- [x] Windows CI: TypeScript check, Rspack build, WPF compile.
 
-This milestone is a functional foundation, not yet feature parity with the DeepSeek web application.
+## Milestone 1 — daily chat client
+
+- [x] Markdown rendering, GFM tables, math formulas, and syntax highlighting.
+- [x] DeepSeek ASR voice input via native WPF bridge.
+- [x] Microphone permission scoped to the DeepDesk virtual origin.
+- [x] Recording size cap and cleanup on app component shutdown.
+- [ ] Add citations and rich search result cards.
+- [ ] Add TTS read-aloud with PCM playback.
+- [ ] Add image/file attachment upload and file references.
+- [ ] Add rename/delete/search/export/import for local conversation history.
+- [ ] Add model catalogue from GET /models and persistent user settings.
+- [ ] Windows runtime QA for microphone, streaming, cancellation, and long conversations.
+
+## Milestone 2 — feature parity and release
+
+- [ ] Port remaining upstream DeepSeek chat-demo components and interaction details.
+- [ ] Add validated file upload lifecycle and attachment previews.
+- [ ] Add history ZIP backup/restore with transactional import.
+- [ ] Add signed reproducible installer, upgrade/uninstall QA, and auto-update.
+- [ ] Add automated protocol tests and Windows UI smoke tests.
+
+The current implementation is a working-in-progress foundation. CI compilation does not replace runtime tests against a real DeepSeek API key and Windows microphone.
