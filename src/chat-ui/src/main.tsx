@@ -62,7 +62,7 @@ function App(){
    });
    if(!activeId)setActiveId(chatId);
    try{
-     await invoke("api.chat",{model,messages:apiMessages,thinking},(chunk,kind)=>{
+     await invoke("api.chat",{model,messages:apiMessages,thinking,search},(chunk,kind)=>{
        if(kind==="reasoning")setReasoning(v=>v+chunk);
        else setConversations(current=>current.map(c=>c.id===chatId?{...c,updatedAt:Date.now(),messages:c.messages.map((m,i)=>i===c.messages.length-1?{...m,text:m.text+chunk}:m)}:c));
      },requestId);
