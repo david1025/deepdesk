@@ -19,11 +19,11 @@
 - [x] Microphone permission scoped to the DeepDesk virtual origin.
 - [x] Recording size cap and cleanup on app component shutdown.
 - [ ] Add citations and rich search result cards.
-- [ ] Add TTS read-aloud with PCM playback.
+- [x] Add TTS read-aloud with PCM playback via native bridge.
 - [ ] Add image/file attachment upload and file references.
 - [ ] Add rename/delete/search/export/import for local conversation history.
 - [ ] Add model catalogue from GET /models and persistent user settings.
-- [ ] Windows runtime QA for microphone, streaming, cancellation, and long conversations.
+- [ ] Windows runtime QA for microphone, TTS playback, streaming, cancellation, and long conversations.
 
 ## Milestone 2 — feature parity and release
 
