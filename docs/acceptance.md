@@ -17,6 +17,10 @@ These are user-reported manual checks, not independently reproduced by CI:
 - [x] Import ZIP history in replace mode.
 - [x] Import ZIP history in merge mode.
 - [x] Export chat history.
+- [x] Launch the Windows desktop app successfully (owner report).
+- [x] Professional mode remains enabled after closing and restarting the app (owner report).
+- [x] The Deep Thinking toggle is hidden while professional mode is enabled (owner report).
+- [x] Stream chat replies and reopen local conversation history successfully (owner report).
 
 ## Stage 3 code-review fixes
 
@@ -41,9 +45,11 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] Normal mode: thinking on sends `thinking.type=enabled`.
 - [ ] Professional mode: Off sends `output_config.effort=none` and omits `thinking`.
 - [ ] Professional mode: Low/High/Max sends the selected `output_config.effort` and omits `thinking`.
-- [ ] Professional mode hides the normal thinking toggle; exiting restores it.
+- [x] Professional mode hides the normal thinking toggle (owner report).
+- [ ] Exiting professional mode restores the normal thinking toggle (not separately verified).
 - [ ] Flash and V4-Pro both respond; verify V4-Pro's image-input limitation is explained in UI.
-- [ ] Verify the selected model and effort persist after restart.
+- [x] Verify professional-mode enabled state persists after restart (owner report).
+- [ ] Verify the selected model and effort values persist after restart (not separately verified).
 
 ### API key and account usage
 - [ ] Set a valid key on a clean profile.
@@ -70,7 +76,8 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] External HTTP(S) links open in the default browser; non-web schemes are blocked.
 - [ ] Clipboard copy/paste and file downloads work.
 - [ ] WebView2 profile and DPAPI credential survive restart.
-- [ ] Lite package starts with required .NET Desktop Runtime installed.
+- [x] A Windows desktop build launches on the owner's machine (owner report; package type not recorded).
+- [ ] Lite package starts with required .NET Desktop Runtime installed (specific package not confirmed).
 - [ ] Self-contained package starts on a clean Windows 10/11 x64 machine with WebView2 Runtime.
 - [ ] Upgrade install preserves local data; uninstall does not delete user data.
 
@@ -79,4 +86,5 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 | Date | Build / commit | Package | Test | Result | Notes |
 |---|---|---|---|---|---|
 | 2026-11-18 | owner-reported current build | Windows | Chat, model switch, ZIP merge/replace import, export | Pass (reported) | Not independently reproduced in CI |
+| 2026-11-18 | owner-reported test build (commit not recorded) | Windows; package type not recorded | Startup; professional mode persists after restart; Deep Thinking hidden in professional mode; chat, streaming and history; ZIP import (merge/replace) and export | Pass (reported) | Professional-mode exit, specific model/effort persistence and request payloads not separately verified |
 | Pending | pending | pending | Remaining checklist | Not run | Requires Windows desktop and real API key |
