@@ -80,7 +80,7 @@ internal sealed class DeepSeekApiService
         using var request = new HttpRequestMessage(HttpMethod.Post, "v1/tools/asr");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _credentials.ReadApiKey());
         request.Content = form;
-        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
         if (!response.IsSuccessStatusCode)
         {
             if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
@@ -89,7 +89,7 @@ internal sealed class DeepSeekApiService
                 throw new ApiServiceException("API_RATE_LIMITED", "语音识别请求过于频繁。");
             throw new ApiServiceException("API_REQUEST_FAILED", $"语音识别失败（HTTP {(int)response.StatusCode}）。");
         }
-        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
         if (!json.RootElement.TryGetProperty("text", out var text) || text.ValueKind != JsonValueKind.String)
             throw new ApiServiceException("API_PROTOCOL_ERROR", "语音识别返回格式无效。");
         return text.GetString() ?? "";
