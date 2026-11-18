@@ -86,8 +86,11 @@ internal sealed class WebViewBridge
                     if (!payload.TryGetProperty("audioBase64", out var audioValue) ||
                         audioValue.ValueKind != JsonValueKind.String)
                         throw new ApiServiceException("INVALID_REQUEST", "录音数据无效。");
+                    var encodedAudio = audioValue.GetString() ?? "";
+                    if (encodedAudio.Length > 12 * 1024 * 1024)
+                        throw new ApiServiceException("INVALID_REQUEST", "录音数据超过大小限制。");
                     byte[] audioBytes;
-                    try { audioBytes = Convert.FromBase64String(audioValue.GetString() ?? ""); }
+                    try { audioBytes = Convert.FromBase64String(encodedAudio); }
                     catch (FormatException) { throw new ApiServiceException("INVALID_REQUEST", "录音数据编码无效。"); }
                     var transcript = await _api.TranscribeAsync(audioBytes, CancellationToken.None);
                     Reply(requestId, true, new { text = transcript });
