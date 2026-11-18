@@ -201,9 +201,33 @@ internal sealed class DeepSeekApiService
                         var kind = block.TryGetProperty("kind", out var kindValue) ? kindValue.GetString() : "search";
                         await onEvent(kind == "read_link" ? "正在阅读链接…" : "正在联网搜索…", "status");
                     }
-                    else if (blockName is "web_search_tool_result" or "web_fetch_tool_result")
+                    else if (blockName == "web_search_tool_result" && block.TryGetProperty("content", out var searchContent) && searchContent.ValueKind == JsonValueKind.Array)
                     {
-                        await onEvent(blockName == "web_fetch_tool_result" ? "网页内容已读取" : "搜索结果已返回", "status");
+                        var results = searchContent.EnumerateArray().Where(item => item.ValueKind == JsonValueKind.Object &&
+                            item.TryGetProperty("type", out var resultType) && resultType.GetString() == "web_search_result")
+                            .Take(12).Select(item => new
+                            {
+                                title = item.TryGetProperty("title", out var title) ? title.GetString() : null,
+                                url = item.TryGetProperty("url", out var url) ? url.GetString() : null,
+                                snippet = item.TryGetProperty("snippet", out var snippet) ? snippet.GetString() : null,
+                                siteName = item.TryGetProperty("site_name", out var site) ? site.GetString() : null
+                            }).Where(item => Uri.TryCreate(item.url, UriKind.Absolute, out var link) &&
+                                (link.Scheme == Uri.UriSchemeHttps || link.Scheme == Uri.UriSchemeHttp)).ToArray();
+                        await onEvent(JsonSerializer.Serialize(results), "sources");
+                        await onEvent("搜索结果已返回", "status");
+                    }
+                    else if (blockName == "web_fetch_tool_result")
+                    {
+                        if (block.TryGetProperty("content", out var fetchContent) &&
+                            fetchContent.ValueKind == JsonValueKind.Object &&
+                            fetchContent.TryGetProperty("url", out var fetchUrl))
+                        {
+                            var url = fetchUrl.GetString();
+                            if (Uri.TryCreate(url, UriKind.Absolute, out var link) &&
+                                (link.Scheme == Uri.UriSchemeHttps || link.Scheme == Uri.UriSchemeHttp))
+                                await onEvent(JsonSerializer.Serialize(new[] { new { title = url, url, snippet = "已阅读此网页", siteName = link.Host } }), "sources");
+                        }
+                        await onEvent("网页内容已读取", "status");
                     }
                 }
                 else if (eventType == "message_stop")
