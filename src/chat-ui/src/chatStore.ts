@@ -1,7 +1,8 @@
 const DB_NAME = "deepdesk-local";
 const STORE = "app";
 const KEY = "conversations";
-export type ChatMessage = { id: string; role: "user" | "assistant"; text: string };
+export type ChatSource = { title: string | null; url: string; snippet: string | null; siteName: string | null };
+export type ChatMessage = { id: string; role: "user" | "assistant"; text: string; sources?: ChatSource[] };
 export type Conversation = { id: string; title: string; updatedAt: number; messages: ChatMessage[] };
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
