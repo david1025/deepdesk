@@ -45,8 +45,8 @@ internal sealed class WebViewBridge
                     var dialog = new ApiKeyDialog { Owner = System.Windows.Application.Current.MainWindow };
                     if (dialog.ShowDialog() == true)
                     {
+                        await _api.TestKeyAsync(dialog.ApiKey, CancellationToken.None);
                         _credentials.SaveApiKey(dialog.ApiKey);
-                        await _api.TestKeyAsync(CancellationToken.None);
                         Reply(requestId, true, new { saved = true, valid = true });
                     }
                     else
