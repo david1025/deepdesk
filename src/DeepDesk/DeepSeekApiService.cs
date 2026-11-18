@@ -71,6 +71,8 @@ internal sealed class DeepSeekApiService
     {
         if (wav.Length < 44 || wav.Length > 8 * 1024 * 1024)
             throw new ApiServiceException("INVALID_REQUEST", "录音文件大小无效（最大 8 MiB）。");
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromMinutes(2));
         using var form = new MultipartFormDataContent();
         var audio = new ByteArrayContent(wav);
         audio.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
