@@ -72,7 +72,23 @@ public partial class MainWindow : Window
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
             var nativeCredentialBootstrap = _credentials.Exists
                 ? "localStorage.setItem('chat-demo:api-key','DEEPDESK_NATIVE_CREDENTIAL');"
-                : "";
+                : """
+                  (() => {
+                    try {
+                      const key = localStorage.getItem('chat-demo:api-key');
+                      if (!key || key === 'DEEPDESK_NATIVE_CREDENTIAL' || !window.chrome?.webview) return;
+                      const requestId = 'deepdesk-key-migration';
+                      const listener = (event) => {
+                        const response = event.data;
+                        if (!response || response.type !== 'response' || response.requestId !== requestId) return;
+                        window.chrome.webview.removeEventListener('message', listener);
+                        if (response.success) localStorage.setItem('chat-demo:api-key', 'DEEPDESK_NATIVE_CREDENTIAL');
+                      };
+                      window.chrome.webview.addEventListener('message', listener);
+                      window.chrome.webview.postMessage({ requestId, action: 'settings.saveApiKey', payload: { apiKey: key } });
+                    } catch {}
+                  })();
+                  """;
             await core.AddScriptToExecuteOnDocumentCreatedAsync(
                 $"try{{{nativeCredentialBootstrap}}}catch{{}}");
             Browser.Source = new Uri("https://deepdesk.local/index.html");
