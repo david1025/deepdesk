@@ -17,6 +17,7 @@
 - [x] Produce lightweight and self-contained Windows x64 artifacts.
 - [x] Owner-reported runtime checks: Windows launch, chat, streaming, local history, model switching, ZIP merge/replace import, export.
 - [x] Owner-reported professional-mode persistence after restart and Deep Thinking button hidden when enabled.
+- [x] Owner-reported PDF upload/read, drag-drop, Ctrl+V paste, web search/link reading, balance/Token display, code and formula rendering.
 - [ ] Full Windows runtime acceptance of every upstream feature.
 - [ ] Verify exact UI parity at the same viewport and interaction states.
 
@@ -25,9 +26,9 @@
 - [x] Fix replacement API-key flow to verify new key natively before saving.
 - [x] Correct professional-mode effort mapping: `none/low/high/max` drives the mode via `output_config.effort`; omit explicit `thinking.type` in this mode.
 - [x] Add a repeatable Windows manual acceptance matrix in `docs/acceptance.md`.
-- [ ] Run the remaining matrix on Windows with a real API key (owner has verified core chat, history, ZIP import/export and professional-mode UI persistence).
-- [ ] Validate balance and usage figures against provider responses.
-- [ ] Verify file picker, paste, drag/drop, ASR, TTS, search, and link reading.
+- [ ] Run the remaining matrix on Windows with a real API key (core chat, ZIP handling, mode persistence, PDF, web, balance display and rendering have owner-reported passes; API key replacement and voice input remain untested).
+- [ ] Validate balance and usage figures against provider responses (UI display passed; numeric accuracy and refresh behavior still need testing).
+- [ ] Remaining coverage: ASR voice input, TTS read-aloud, source-card links, image/large-file edge cases, and additional rendering formats (PDF read, drag/drop, paste, web search and reading passed).
 - [ ] Verify cancellation, rate limits, insufficient balance, offline and timeout recovery.
 - [ ] Verify upgrade/uninstall data preservation.
 
