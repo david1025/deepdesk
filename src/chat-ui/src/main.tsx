@@ -1,4 +1,11 @@
 import React from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import rehypeHighlight from "rehype-highlight";
+import "katex/dist/katex.min.css";
+import "highlight.js/styles/github.css";
 import { createRoot } from "react-dom/client";
 import { loadConversations, saveConversations, type ChatMessage, type Conversation } from "./chatStore";
 import "./style.css";
@@ -45,7 +52,8 @@ function App(){
    }).catch(e=>{setError(e.message);setLoaded(true);});
  },[]);
  React.useEffect(()=>{if(loaded)void saveConversations(conversations).catch(e=>setError(e.message));},[conversations,loaded]);
- React.useEffect(()=>()=>{mediaRef.current?.getTracks().forEach(t=>t.stop());void audioContextRef.current?.close();},[]);\n async function saveKey(){
+ React.useEffect(()=>()=>{mediaRef.current?.getTracks().forEach(t=>t.stop());void audioContextRef.current?.close();},[]);
+ async function saveKey(){
    setError("");setTesting(true);
    try{await invoke("settings.configureApiKey");setConfigured(true);setShowSettings(false);}
    catch(e:any){setError(e.message);}
@@ -123,7 +131,7 @@ function App(){
    </div></header>
    <section className="conversation">
     {!messages.length&&!busy?<div className="welcome"><div className="welcome-icon">✳</div><h1>有什么可以帮忙的？</h1><p>使用你自己的 DeepSeek API，开始一段新的对话。</p><div className="suggestions"><button onClick={()=>setInput("解释一下人工智能中的 Agent 架构")}>解释一个技术概念</button><button onClick={()=>setInput("帮我制定一个清晰的项目计划")}>制定项目计划</button></div></div>:
-      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="bubble">{m.text|| (busy&&m.role==="assistant"?"正在思考…":"")}</div></div>)}</div>}
+      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="bubble">{m.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[rehypeKatex,rehypeHighlight]}>{m.text|| (busy?"正在思考…":"")}</ReactMarkdown>:m.text}</div></div>)}</div>}
     {streamStatus&&<div className="stream-status">{streamStatus}</div>}{reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
