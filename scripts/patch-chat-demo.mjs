@@ -573,7 +573,7 @@ export const AccountUsage = () => {
   let s = await read(file)
   s = replaceOnce(s,
     "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'",
-    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'\n\nexport type ReasoningEffort = 'low' | 'high' | 'max'", file)
+    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'\n\nexport type ReasoningEffort = 'none' | 'low' | 'high' | 'max'", file)
   s = replaceOnce(s,
     "  thinking: { type: 'enabled' | 'disabled' }\n  tools:",
     "  thinking?: { type: 'enabled' | 'disabled' }\n  output_config?: { effort: ReasoningEffort }\n  tools:", file)
@@ -593,7 +593,7 @@ export const AccountUsage = () => {
     "  thinking: 'chat-demo:thinking',\n  professionalMode: 'deepdesk:professional-mode',\n  model: 'deepdesk:model',\n  reasoningEffort: 'deepdesk:reasoning-effort',\n  search:", file)
   s = replaceOnce(s,
     "export const useSettings = create<Settings>(() => ({",
-    "const initialModel = (): ChatModel => read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash'\nconst initialReasoningEffort = (): ReasoningEffort => {\n  const value = read(KEYS.reasoningEffort)\n  return value === 'low' || value === 'max' ? value : 'high'\n}\n\nexport const useSettings = create<Settings>(() => ({", file)
+    "const initialModel = (): ChatModel => read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash'\nconst initialReasoningEffort = (): ReasoningEffort => {\n  const value = read(KEYS.reasoningEffort)\n  return value === 'none' || value === 'low' || value === 'max' ? value : 'high'\n}\n\nexport const useSettings = create<Settings>(() => ({", file)
   s = replaceOnce(s,
     "  thinking: read(KEYS.thinking) === 'true',\n  search:",
     "  thinking: read(KEYS.thinking) === 'true',\n  professionalMode: read(KEYS.professionalMode) === 'true',\n  model: initialModel(),\n  reasoningEffort: initialReasoningEffort(),\n  search:", file)
@@ -621,10 +621,10 @@ export const AccountUsage = () => {
     "  const { thinking, search, professionalMode, model, reasoningEffort } = useSettings.getState()\n  return {\n    id: createId(),", file)
   s = replaceOnce(s,
     "    model: MODEL,\n    thinking,\n    search,",
-    "    model: professionalMode ? model : MODEL,\n    thinking,\n    reasoningEffort: professionalMode ? reasoningEffort : undefined,\n    search,", file)
+    "    model: professionalMode ? model : MODEL,\n    thinking: professionalMode ? reasoningEffort !== 'none' : thinking,\n    reasoningEffort: professionalMode ? reasoningEffort : undefined,\n    search,", file)
   s = replaceOnce(s,
     "            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },",
-    "            ...(initial.reasoningEffort && initial.thinking\n              ? { output_config: { effort: initial.reasoningEffort } }\n              : { thinking: { type: initial.thinking ? 'enabled' : 'disabled' } }),", file)
+    "            ...(initial.reasoningEffort\n              ? { output_config: { effort: initial.reasoningEffort } }\n              : { thinking: { type: initial.thinking ? 'enabled' : 'disabled' } }),", file)
   await write(file, s)
 }
 {
