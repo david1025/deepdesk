@@ -29,6 +29,21 @@ internal sealed class DeepSeekApiService
             throw new ApiServiceException("API_REQUEST_FAILED", $"连接测试失败（HTTP {(int)response.StatusCode}）。");
     }
 
+    public async Task<JsonElement> GetBalanceAsync(CancellationToken cancellationToken)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, "user/balance");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _credentials.ReadApiKey());
+        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(TimeSpan.FromSeconds(30));
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            throw new ApiServiceException("API_AUTH_FAILED", "API Key 无效或无权访问。");
+        if (!response.IsSuccessStatusCode)
+            throw new ApiServiceException("API_REQUEST_FAILED", $"余额查询失败（HTTP {(int)response.StatusCode}）。");
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(timeout.Token));
+        return json.RootElement.Clone();
+    }
+
     public async Task<byte[]> SynthesizeAsync(string text, string voice, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(text) || text.Length > 12000)
