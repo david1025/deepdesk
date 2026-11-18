@@ -39,5 +39,8 @@ Stream event:
 
 The native host maps this to `POST /anthropic/v1/messages` with the official DeepSeek extension fields (`system`, `thinking`, `tools`, and `safety_check`). Streaming is parsed as Anthropic-compatible SSE events. The renderer cannot pass arbitrary URLs, headers, tools, or filesystem paths.
 
-## External links\n- `app.openExternal`: opens only absolute HTTP/HTTPS URLs through the Windows shell; credentials and non-web URI schemes are rejected.\n\n## Errors
+## External links
+- `app.openExternal`: opens only absolute HTTP/HTTPS URLs through the Windows shell; credentials and non-web URI schemes are rejected.
+
+## Errors
 Errors use stable codes: `INVALID_REQUEST`, `API_KEY_MISSING`, `API_AUTH_FAILED`, `API_RATE_LIMITED`, `API_REQUEST_FAILED`, `API_PROTOCOL_ERROR`, `REQUEST_CANCELLED`.
