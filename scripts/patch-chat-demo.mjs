@@ -525,7 +525,7 @@ export const AccountUsage = () => {
   const amount = info ? Number(info.total_balance) : null
 
   return (
-    <div className={styles.accountUsage} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <div className={styles.accountUsage} onMouseEnter={() => { setOpen(true); if (!balance && apiKey) void refresh() }} onMouseLeave={() => setOpen(false)}>
       <button type="button" className={styles.balanceButton} onClick={() => setOpen((value) => !value)} aria-expanded={open}>
         <span className={styles.walletIcon}>◉</span>
         <span>{amount === null ? (apiKey ? '额度' : '配置 API') : formatMoney(amount, currency)}</span>
