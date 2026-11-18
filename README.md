@@ -33,7 +33,7 @@ See [AGENTS.md](AGENTS.md) and [docs/architecture.md](docs/architecture.md).
 corepack enable
 pnpm install --dir src/chat-ui
 pnpm --dir src/chat-ui build
-dotnet build src/DeepDesk/DeepDesk.csproj -c Release
+dotnet build src/DeepDesk/DeepDesk.csproj -c Release\ndotnet publish src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -o artifacts/DeepDesk-win-x64
 ```
 
 The UI build is copied into the WPF output and loaded through a WebView2 virtual host mapping. No Node.js server is required at runtime.
