@@ -28,13 +28,14 @@ Stream event:
 ## Chat payload
 ```json
 {
-  "model":"deepseek-chat",
+  "model":"deepseek-flash",
   "messages":[{"role":"user","content":"Hello"}],
-  "thinking":false
+  "thinking":true,
+  "search":false
 }
 ```
 
-The native host maps this to the currently documented DeepSeek Chat Completions API. Do not pass arbitrary URLs, headers, tools, or filesystem paths from the renderer.
+The native host maps this to `POST /anthropic/v1/messages` with the official DeepSeek extension fields (`system`, `thinking`, `tools`, and `safety_check`). Streaming is parsed as Anthropic-compatible SSE events. The renderer cannot pass arbitrary URLs, headers, tools, or filesystem paths.
 
 ## Errors
 Errors use stable codes: `INVALID_REQUEST`, `API_KEY_MISSING`, `API_AUTH_FAILED`, `API_RATE_LIMITED`, `API_REQUEST_FAILED`, `API_PROTOCOL_ERROR`, `REQUEST_CANCELLED`.
