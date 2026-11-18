@@ -11,7 +11,7 @@ import { loadConversations, saveConversations, type ChatMessage, type Conversati
 import "./style.css";
 
 type Envelope = { type: string; requestId: string; success?: boolean; data?: any; event?: string };
-type Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any,kind?:string)=>void };
+type SourceLink = {title:string|null;url:string;snippet:string|null;siteName:string|null};\ntype Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any,kind?:string)=>void };
 const pending = new Map<string, Pending>();
 const id = () => crypto.randomUUID();
 function invoke(action:string,payload:any={},onStream?:(v:any,kind?:string)=>void,requestId=id()):Promise<any>{
@@ -147,7 +147,7 @@ function App(){
    </div></header>
    <section className="conversation">
     {!messages.length&&!busy?<div className="welcome"><div className="welcome-icon">✳</div><h1>有什么可以帮忙的？</h1><p>使用你自己的 DeepSeek API，开始一段新的对话。</p><div className="suggestions"><button onClick={()=>setInput("解释一下人工智能中的 Agent 架构")}>解释一个技术概念</button><button onClick={()=>setInput("帮我制定一个清晰的项目计划")}>制定项目计划</button></div></div>:
-      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="message-content"><div className="bubble">{m.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[rehypeKatex,rehypeHighlight]}>{m.text|| (busy?"正在思考…":"")}</ReactMarkdown>:m.text}</div>{m.role==="assistant"&&m.text&&<button className="read-aloud" onClick={()=>void readAloud(m)}>{readingId===m.id?"停止朗读":"朗读"}</button>}</div></div>)}</div>}
+      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="message-content"><div className="bubble">{m.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[rehypeKatex,rehypeHighlight]} components={{a:({href,children})=><a href={href} onClick={e=>{e.preventDefault();if(href)void invoke("app.openExternal",{url:href}).catch(err=>setError(err.message));}}>{children}</a>}}>{m.text|| (busy?"正在思考…":"")}</ReactMarkdown>:m.text}</div>{m.role==="assistant"&&m.sources?.length?<div className="sources"><b>参考来源</b>{m.sources.map(source=><a key={source.url} href={source.url} onClick={e=>{e.preventDefault();void invoke("app.openExternal",{url:source.url}).catch(err=>setError(err.message));}}><span>{source.siteName||"网页"}</span><strong>{source.title||source.url}</strong>{source.snippet&&<small>{source.snippet}</small>}</a>)}</div>:null}{m.role==="assistant"&&m.text&&<button className="read-aloud" onClick={()=>void readAloud(m)}>{readingId===m.id?"停止朗读":"朗读"}</button>}</div></div>)}</div>}
     {streamStatus&&<div className="stream-status">{streamStatus}</div>}{reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
