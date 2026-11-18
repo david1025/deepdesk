@@ -327,7 +327,7 @@ export const importHistory = (
 // ---------- Native DPAPI credential bridge and usage UI ----------
 {
   const file = 'src/services/native.ts'
-  await write(file, \`type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
+  await write(file, `type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
 
 declare global {
   interface Window {
@@ -369,7 +369,7 @@ export const getNativeBalance = () => nativeRequest<{
   is_available: boolean
   balance_infos: Array<{ currency: 'CNY' | 'USD'; total_balance: string; granted_balance: string; topped_up_balance: string }>
 }>('api.getBalance')
-\`)
+`)
 }
 
 {
@@ -420,7 +420,7 @@ export const getNativeBalance = () => nativeRequest<{
 
 {
   const file = 'src/components/usage/SessionUsage.tsx'
-  await write(file, \`import { useMemo } from 'react'
+  await write(file, `import { useMemo } from 'react'
 import { useChatStore } from '../../services/chat/store.js'
 import type { AssistantMessage } from '../../services/chat/types.js'
 import styles from './Usage.module.css'
@@ -442,7 +442,7 @@ export const SessionUsage = ({ sessionId }: { sessionId: string | null }) => {
     ? Math.round(usage.cacheRead / (usage.cacheRead + usage.cacheCreate + usage.input) * 100)
     : 0
   return (
-    <div className={styles.sessionUsage} title={\`缓存读取 \${usage.cacheRead.toLocaleString()} · 未缓存输入 \${(usage.input + usage.cacheCreate).toLocaleString()} · 输出 \${usage.output.toLocaleString()}\`}>
+    <div className={styles.sessionUsage} title={"缓存读取 " + usage.cacheRead.toLocaleString() + " · 未缓存输入 " + (usage.input + usage.cacheCreate).toLocaleString() + " · 输出 " + usage.output.toLocaleString()}>
       <span>本会话</span>
       <span>{total.toLocaleString()} tok</span>
       <span>缓存命中 {cacheRate}%</span>
@@ -450,12 +450,12 @@ export const SessionUsage = ({ sessionId }: { sessionId: string | null }) => {
     </div>
   )
 }
-\`)
+`)
 }
 
 {
   const file = 'src/components/usage/AccountUsage.tsx'
-  await write(file, \`import { useEffect, useMemo, useState } from 'react'
+  await write(file, `import { useEffect, useMemo, useState } from 'react'
 import { useSettings } from '../../services/settings.js'
 import { getNativeBalance } from '../../services/native.js'
 import { loadAllUsageMessages } from '../../services/chat/db.js'
@@ -550,12 +550,12 @@ export const AccountUsage = () => {
     </div>
   )
 }
-\`)
+`)
 }
 
 {
   const file = 'src/components/usage/Usage.module.css'
-  await write(file, \`.sessionUsage {
+  await write(file, `.sessionUsage {
   display: flex;
   align-items: center;
   justify-content: flex-end;
@@ -593,11 +593,11 @@ export const AccountUsage = () => {
 .popoverFoot button:disabled { opacity:.5; cursor:default; }
 .balanceError { color: var(--dsw-alias-state-error-primary); }
 .estimateNote { display:block; margin-top:8px; }
-\`)
+`)
 }
 {
   const file = 'src/components/usage/Usage.module.css.d.ts'
-  await write(file, \`declare const styles: {
+  await write(file, `declare const styles: {
   readonly "sessionUsage": string;
   readonly "accountUsage": string;
   readonly "balanceButton": string;
@@ -612,7 +612,7 @@ export const AccountUsage = () => {
   readonly "estimateNote": string;
 }
 export = styles
-\`)
+`)
 }
 
 
