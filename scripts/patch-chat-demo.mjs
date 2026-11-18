@@ -679,36 +679,8 @@ export const AccountUsage = () => {
   await write('src/components/chatInput/ModelSettings.module.css', ".trigger {\n  display: inline-flex;\n  align-items: center;\n  flex-shrink: 0;\n  gap: 7px;\n  max-width: 300px;\n  height: 34px;\n  padding: 0 12px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 18px;\n  background: var(--dsw-specific-selector);\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 13px;\n  line-height: 18px;\n  cursor: pointer;\n  white-space: nowrap;\n}\n.trigger:hover { background: var(--dsw-alias-interactive-bg-hover); }\n.active {\n  background: var(--dsw-alias-button-ghost-active-fill);\n  color: var(--dsw-alias-brand-text);\n  border-color: var(--dsw-alias-button-ghost-active-border);\n}\n.modelName { overflow: hidden; text-overflow: ellipsis; }\n.effortName { color: var(--dsw-alias-label-secondary); }\n.panel {\n  position: fixed;\n  z-index: 1100;\n  box-sizing: border-box;\n  width: 272px;\n  padding: 8px;\n  overflow: visible;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 14px;\n  background: var(--dsw-alias-bg-layer-3);\n  color: var(--dsw-alias-label-primary);\n  box-shadow: 0 6px 24px rgba(0,0,0,.12);\n}\n.row {\n  position: relative;\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  min-height: 44px;\n}\n.label {\n  flex: 0 0 76px;\n  color: var(--dsw-alias-label-secondary);\n  font-size: 13px;\n}\n.rowTrigger {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  flex: 1;\n  min-width: 0;\n  height: 38px;\n  padding: 0 10px;\n  border: 0;\n  border-radius: 10px;\n  background: var(--dsw-specific-selector);\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 13px;\n  cursor: pointer;\n}\n.rowTrigger span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n.rowTrigger:hover, .rowTrigger[aria-expanded=\"true\"] {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n.options {\n  position: absolute;\n  z-index: 2;\n  left: calc(100% + 8px);\n  display: flex;\n  flex-direction: column;\n  gap: 2px;\n  box-sizing: border-box;\n  width: 218px;\n  padding: 6px;\n  border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 12px;\n  background: var(--dsw-alias-bg-layer-3);\n  box-shadow: 0 6px 24px rgba(0,0,0,.12);\n}\n.modelOptions { top: 1px; }\n.effortOptions { top: 45px; }\n.option {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  min-height: 36px;\n  padding: 4px 9px;\n  border: 0;\n  border-radius: 8px;\n  background: transparent;\n  color: var(--dsw-alias-label-primary);\n  font: inherit;\n  font-size: 13px;\n  text-align: left;\n  cursor: pointer;\n}\n.option:hover, .option[aria-selected=\"true\"] {\n  background: var(--dsw-alias-interactive-bg-hover);\n}\n.footer {\n  display: flex;\n  align-items: center;\n  justify-content: space-between;\n  gap: 8px;\n  margin: 6px 2px 0;\n  padding-top: 8px;\n  border-top: 1px solid var(--dsw-alias-border-l1);\n  color: var(--dsw-alias-label-tertiary);\n  font-size: 11px;\n}\n.footer button {\n  padding: 3px 0;\n  border: 0;\n  background: transparent;\n  color: var(--dsw-alias-brand-text);\n  font: inherit;\n  cursor: pointer;\n}\n")
   await write('src/components/chatInput/ModelSettings.module.css.d.ts', "declare const styles: {\n  readonly \"trigger\": string;\n  readonly \"active\": string;\n  readonly \"modelName\": string;\n  readonly \"effortName\": string;\n  readonly \"panel\": string;\n  readonly \"row\": string;\n  readonly \"label\": string;\n  readonly \"rowTrigger\": string;\n  readonly \"options\": string;\n  readonly \"modelOptions\": string;\n  readonly \"effortOptions\": string;\n  readonly \"option\": string;\n  readonly \"footer\": string;\n}\nexport = styles\n")
 }
-{
-  const file = 'src/services/api/types.ts'
-  let s = await read(file)
-  s = replaceOnce(s,
-    "export type ReasoningEffort = 'low' | 'high' | 'max'",
-    "export type ReasoningEffort = 'none' | 'low' | 'high' | 'max'", file)
-  await write(file, s)
-}
-{
-  const file = 'src/services/settings.ts'
-  let s = await read(file)
-  s = replaceOnce(s,
-    "return value === 'low' || value === 'max' ? value : 'high'",
-    "return value === 'none' || value === 'low' || value === 'max' ? value : 'high'", file)
-  await write(file, s)
-}
-{
-  const file = 'src/services/chat/store.ts'
-  let s = await read(file)
-  s = replaceOnce(s,
-    "  const { thinking, search, professionalMode, model, reasoningEffort } = useSettings.getState()\n  return {",
-    "  const { thinking: defaultThinking, search, professionalMode, model, reasoningEffort } = useSettings.getState()\n  const effectiveThinking = professionalMode ? reasoningEffort !== 'none' : defaultThinking\n  return {", file)
-  s = replaceOnce(s,
-    "    model: professionalMode ? model : MODEL,\n    thinking,\n    reasoningEffort: professionalMode ? reasoningEffort : undefined,",
-    "    model: professionalMode ? model : MODEL,\n    thinking: effectiveThinking,\n    reasoningEffort: professionalMode ? reasoningEffort : undefined,", file)
-  s = replaceOnce(s,
-    "            ...(initial.reasoningEffort && initial.thinking\n              ? { output_config: { effort: initial.reasoningEffort } }\n              : { thinking: { type: initial.thinking ? 'enabled' : 'disabled' } }),",
-    "            ...(initial.reasoningEffort && initial.reasoningEffort !== 'none'\n              ? { output_config: { effort: initial.reasoningEffort } }\n              : { thinking: { type: initial.thinking ? 'enabled' : 'disabled' } }),", file)
-  await write(file, s)
-}
+// Professional mode types and request mapping are patched once above; do not re-patch generated anchors.
+
 {
   const file = 'src/i18n/zh.ts'
   let s = await read(file)
