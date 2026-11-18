@@ -63,6 +63,19 @@ internal sealed class WebViewBridge
                         throw new ApiServiceException("REQUEST_CANCELLED", "已取消 API Key 配置。");
                     }
                     break;
+                case "settings.saveApiKey":
+                    var suppliedKey = payload.TryGetProperty("apiKey", out var keyValue) ? keyValue.GetString() : null;
+                    if (string.IsNullOrWhiteSpace(suppliedKey))
+                        throw new ApiServiceException("INVALID_REQUEST", "API Key 不能为空。");
+                    await _api.TestKeyAsync(suppliedKey, CancellationToken.None);
+                    _credentials.SaveApiKey(suppliedKey);
+                    Reply(requestId, true, new { saved = true, valid = true });
+                    break;
+                case "api.getBalance":
+                    if (!_credentials.Exists) throw new ApiServiceException("API_KEY_MISSING", "请先配置 API Key。");
+                    var balance = await _api.GetBalanceAsync(CancellationToken.None);
+                    Reply(requestId, true, balance);
+                    break;
                 case "settings.clearApiKey":
                     _credentials.Clear();
                     Reply(requestId, true, new { cleared = true });
