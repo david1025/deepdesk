@@ -40,8 +40,8 @@ function App(){
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
  const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
- const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false);
- const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]),frameCountRef=React.useRef(0);
+ const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false),[readingId,setReadingId]=React.useState<string|null>(null);
+ const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]),frameCountRef=React.useRef(0),playbackRef=React.useRef<AudioContext|null>(null);
  const active=conversations.find(c=>c.id===activeId);
  const messages=active?.messages??[];
  React.useEffect(()=>{
@@ -52,7 +52,7 @@ function App(){
    }).catch(e=>{setError(e.message);setLoaded(true);});
  },[]);
  React.useEffect(()=>{if(loaded)void saveConversations(conversations).catch(e=>setError(e.message));},[conversations,loaded]);
- React.useEffect(()=>()=>{mediaRef.current?.getTracks().forEach(t=>t.stop());void audioContextRef.current?.close();},[]);
+ React.useEffect(()=>()=>{mediaRef.current?.getTracks().forEach(t=>t.stop());void audioContextRef.current?.close();void playbackRef.current?.close();},[]);
  async function saveKey(){
    setError("");setTesting(true);
    try{await invoke("settings.configureApiKey");setConfigured(true);setShowSettings(false);}
@@ -78,6 +78,22 @@ function App(){
      },requestId);
    }catch(e:any){setError(e.message);}
    finally{setBusy(false);setActiveRequest(null);setStreamStatus("");}
+ }
+ async function readAloud(message:ChatMessage){
+   if(readingId){await playbackRef.current?.close();playbackRef.current=null;setReadingId(null);return;}
+   if(!message.text.trim())return;
+   setReadingId(message.id);
+   try{
+     const result=await invoke("speech.synthesize",{text:message.text,voice:"stella"});
+     const binary=atob(result.audioBase64),pcm=new Int16Array(binary.length/2);
+     for(let i=0;i<pcm.length;i++)pcm[i]=(binary.charCodeAt(i*2)|(binary.charCodeAt(i*2+1)<<8));
+     const context=new AudioContext();playbackRef.current=context;
+     const buffer=context.createBuffer(1,pcm.length,result.sampleRate||24000),channel=buffer.getChannelData(0);
+     for(let i=0;i<pcm.length;i++)channel[i]=pcm[i]<0?pcm[i]/32768:pcm[i]/32767;
+     const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
+     source.onended=()=>{if(playbackRef.current===context){void context.close();playbackRef.current=null;setReadingId(null);}};
+     await context.resume();source.start();
+   }catch(e:any){setError(e.message);setReadingId(null);}
  }
  async function toggleVoice(){
    if(recording){
@@ -131,7 +147,7 @@ function App(){
    </div></header>
    <section className="conversation">
     {!messages.length&&!busy?<div className="welcome"><div className="welcome-icon">✳</div><h1>有什么可以帮忙的？</h1><p>使用你自己的 DeepSeek API，开始一段新的对话。</p><div className="suggestions"><button onClick={()=>setInput("解释一下人工智能中的 Agent 架构")}>解释一个技术概念</button><button onClick={()=>setInput("帮我制定一个清晰的项目计划")}>制定项目计划</button></div></div>:
-      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="bubble">{m.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[rehypeKatex,rehypeHighlight]}>{m.text|| (busy?"正在思考…":"")}</ReactMarkdown>:m.text}</div></div>)}</div>}
+      <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="message-content"><div className="bubble">{m.role==="assistant"?<ReactMarkdown remarkPlugins={[remarkGfm,remarkMath]} rehypePlugins={[rehypeKatex,rehypeHighlight]}>{m.text|| (busy?"正在思考…":"")}</ReactMarkdown>:m.text}</div>{m.role==="assistant"&&m.text&&<button className="read-aloud" onClick={()=>void readAloud(m)}>{readingId===m.id?"停止朗读":"朗读"}</button>}</div></div>)}</div>}
     {streamStatus&&<div className="stream-status">{streamStatus}</div>}{reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
