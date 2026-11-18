@@ -23,7 +23,7 @@ Stream event:
 - `settings.clearApiKey`: deletes the protected key.
 - `settings.testApiKey`: verifies the configured key using GET /models.
 - `api.chat`: accepts model, text message history, thinking and search flags; emits content, reasoning, and progress stream events.
-- `speech.transcribe`: accepts a size-limited Base64 WAV recording, calls POST /v1/tools/asr natively, and returns recognized text.
+- `speech.transcribe`: accepts a size-limited Base64 WAV recording, calls POST /v1/tools/asr natively, and returns recognized text.\n- `speech.synthesize`: accepts text and an allowlisted voice, calls POST /v1/tools/tts natively, and returns bounded PCM audio for local playback.
 - `api.cancel`: accepts targetRequestId and cancels only that request.
 
 ## Chat payload
