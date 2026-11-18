@@ -24,7 +24,7 @@ internal sealed class DeepSeekApiService
             throw new ApiServiceException("API_REQUEST_FAILED", $"连接测试失败（HTTP {(int)response.StatusCode}）。");
     }
 
-    public async Task StreamChatAsync(string requestId, JsonElement payload, Func<string, Task> onDelta,
+    public async Task StreamChatAsync(string requestId, JsonElement payload, Func<string, string, Task> onDelta,
         CancellationToken cancellationToken)
     {
         var model = payload.TryGetProperty("model", out var modelValue) ? modelValue.GetString() : "deepseek-chat";
