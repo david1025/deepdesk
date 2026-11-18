@@ -46,7 +46,12 @@ jobs:
 
       - name: Build official DeepSeek UI
         working-directory: vendor/chat-demo
-        run: pnpm build
+        shell: pwsh
+        env:
+          NODE_ENV: production
+        run: |
+          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
+          pnpm exec rspack build -c rspack.config.ts
 
       - name: Stage official UI into desktop host
         shell: pwsh
