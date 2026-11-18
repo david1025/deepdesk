@@ -62,6 +62,16 @@ internal sealed class WebViewBridge
                     await _api.TestKeyAsync(CancellationToken.None);
                     Reply(requestId, true, new { valid = true });
                     break;
+                case "speech.synthesize":
+                    if (!_credentials.Exists) throw new ApiServiceException("API_KEY_MISSING", "请先配置 API Key。");
+                    var speechText = payload.TryGetProperty("text", out var textValue) ? textValue.GetString() : null;
+                    var voice = payload.TryGetProperty("voice", out var voiceValue) ? voiceValue.GetString() ?? "stella" : "stella";
+                    using (var speechTimeout = new CancellationTokenSource(TimeSpan.FromMinutes(2)))
+                    {
+                        var pcm = await _api.SynthesizeAsync(speechText ?? "", voice, speechTimeout.Token);
+                        Reply(requestId, true, new { audioBase64 = Convert.ToBase64String(pcm), sampleRate = 24000 });
+                    }
+                    break;
                 case "speech.transcribe":
                     if (!_credentials.Exists) throw new ApiServiceException("API_KEY_MISSING", "请先配置 API Key。");
                     if (!payload.TryGetProperty("audioBase64", out var audioValue) ||
