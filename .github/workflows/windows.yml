@@ -40,6 +40,9 @@ jobs:
         working-directory: vendor/chat-demo
         run: pnpm install --frozen-lockfile
 
+      - name: Patch official UI for DeepDesk desktop features
+        run: node scripts/patch-chat-demo.mjs vendor/chat-demo
+
       - name: Type-check official UI
         working-directory: vendor/chat-demo
         run: pnpm type
