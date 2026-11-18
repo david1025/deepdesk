@@ -39,7 +39,7 @@ function App(){
  const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
- const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
+ const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(false),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
  const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false),[readingId,setReadingId]=React.useState<string|null>(null);
  const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]),frameCountRef=React.useRef(0),playbackRef=React.useRef<AudioContext|null>(null);
  const active=conversations.find(c=>c.id===activeId);
@@ -62,7 +62,7 @@ function App(){
  async function send(){
    if(!input.trim()||busy||!configured)return;
    const prompt=input.trim(),requestId=id(),chatId=activeId||id(),userMessage:ChatMessage={id:id(),role:"user",text:prompt},assistantMessage:ChatMessage={id:id(),role:"assistant",text:""};
-   const apiMessages=[...messages,userMessage].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0);
+   const apiMessages=[...messages,userMessage].slice(-100).map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0);
    setInput("");setError("");setReasoning("");setStreamStatus("");setBusy(true);setActiveRequest(requestId);
    setConversations(current=>{
      const exists=current.some(c=>c.id===chatId);
