@@ -3,14 +3,13 @@
 ## Runtime topology
 
 ```text
-React static UI (WebView2 virtual HTTPS origin)
-  | window.chrome.webview.postMessage
+Official React Chat Demo (static assets in WebView2)
+  | fetch to allowlisted DeepSeek API HTTPS origin
   v
-WPF host / WebViewBridge (strict action allowlist)
-  |-- CredentialService: DPAPI CurrentUser
-  |-- DeepSeekApiService: HttpClient + SSE
-  |-- AppSettingsService: non-secret JSON settings
-  |-- IndexedDB: conversations and message history (renderer origin scoped)
+WebView2 host request interception (credential injection only for api.deepseek.com)
+  |-- CredentialService: Windows DPAPI CurrentUser
+  |-- Native bridge: status, key management, balance, speech, cancellation
+  |-- IndexedDB: conversations, messages, attachments
   v
 https://api.deepseek.com
 ```
@@ -18,23 +17,27 @@ https://api.deepseek.com
 No local HTTP server and no Node.js runtime are required. Node/pnpm are build-time dependencies only.
 
 ## Security boundaries
+
 - WebView2 maps the packaged UI folder to `https://deepdesk.local`.
-- Only this exact origin is permitted to invoke the bridge.
-- Top-level navigation away from the app origin is cancelled and opened externally only for explicitly approved http(s) links (future feature).
+- Only this exact origin may invoke the native bridge.
+- Top-level navigation away from the app origin is cancelled; only absolute HTTP/HTTPS links without embedded credentials may open externally.
 - The bridge exposes named operations, never arbitrary filesystem paths or process execution.
-- API keys are encrypted with Windows DPAPI CurrentUser and only decrypted inside the native API service.
-- API requests go directly from .NET to the configured HTTPS API origin.
+- API keys are encrypted with Windows DPAPI CurrentUser and are not intentionally exposed to renderer storage. The renderer holds a non-secret sentinel only.
+- WebView2 attaches credentials only to HTTPS requests whose host is exactly `api.deepseek.com`.
 - Do not include credentials or conversation content in logs.
 
 ## Data ownership
-- Conversation database: IndexedDB owned by the React application.
+
+- Conversation database and local attachments: IndexedDB owned by the official React application, scoped to the DeepDesk virtual origin.
 - API key: DPAPI-protected file under LocalAppData.
-- Non-secret preferences: JSON under LocalAppData.
+- WebView2 profile: under LocalAppData DeepDesk directory.
 - User exports/backups: user-selected destination.
-- Attachments: phase 2; define explicit lifecycle and server-retention UX before implementation.
+- App logs: LocalAppData, restricted to operational metadata and exception types; never prompts, completions, file contents or credentials.
 
 ## API compatibility
-The upstream chat-demo currently uses DeepSeek's Anthropic-compatible Messages/Files endpoints and separate speech endpoints. This project must verify each capability against the current official API documentation before enabling it. The initial native service implements only streaming text chat and API-key verification. Search, file upload, link reading, ASR, and TTS remain disabled until their request/response contracts are validated.
 
-## Streaming
-The native host reads SSE frames, handles CRLF/LF boundaries and multi-line data fields, and emits normalized `delta`, `completed`, or `error` events. Cancellation is keyed by request ID and must not cancel unrelated chats.
+The pinned official Chat Demo implements Anthropic-compatible Messages and Files APIs plus separate speech endpoints. The Windows host currently supplies credentials to the renderer's requests and provides native key management, account-balance, and speech bridge actions. The host also contains a separate streaming API service; it is not currently the renderer's chat transport. Each API capability must be validated against current official documentation and real Windows runtime tests before release.
+
+## Streaming and cancellation
+
+The official renderer parses the chat SSE stream and owns conversation state. The native host's standalone streaming service parses SSE and supports request-ID cancellation, but the current renderer chat flow does not use that service. Windows acceptance must verify the actual renderer request cancellation and app shutdown behavior independently.
