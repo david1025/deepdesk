@@ -38,6 +38,15 @@ internal sealed class WebViewBridge
 
             switch (action)
             {
+                case "app.openExternal":
+                    var externalText = payload.TryGetProperty("url", out var externalValue) ? externalValue.GetString() : null;
+                    if (!Uri.TryCreate(externalText, UriKind.Absolute, out var externalUri) ||
+                        externalUri.UserInfo.Length > 0 ||
+                        (externalUri.Scheme != Uri.UriSchemeHttps && externalUri.Scheme != Uri.UriSchemeHttp))
+                        throw new ApiServiceException("INVALID_REQUEST", "仅允许打开 HTTP 或 HTTPS 网页链接。");
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(externalUri.AbsoluteUri) { UseShellExecute = true });
+                    Reply(requestId, true, new { opened = true });
+                    break;
                 case "app.getStatus":
                     Reply(requestId, true, new { apiKeyConfigured = _credentials.Exists, appVersion = "0.1.0" });
                     break;
