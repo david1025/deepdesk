@@ -1,6 +1,6 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { loadMessages, saveMessages, type ChatMessage } from "./chatStore";
+import { loadConversations, saveConversations, type ChatMessage, type Conversation } from "./chatStore";
 import "./style.css";
 
 type Envelope = { type: string; requestId: string; success?: boolean; data?: any; event?: string };
@@ -31,50 +31,54 @@ window.chrome.webview.addEventListener("message",(event:any)=>window.deepDeskRec
 function App(){
  const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
- const [input,setInput]=React.useState(""),[messages,setMessages]=React.useState<ChatMessage[]>([]);
+ const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
  const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[reasoning,setReasoning]=React.useState("");
  const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false);
+ const active=conversations.find(c=>c.id===activeId);
+ const messages=active?.messages??[];
  React.useEffect(()=>{
-   Promise.all([invoke("app.getStatus"),loadMessages()]).then(([status,history])=>{
-     setConfigured(!!status.apiKeyConfigured);setMessages(history);setLoaded(true);
+   Promise.all([invoke("app.getStatus"),loadConversations()]).then(([status,history])=>{
+     setConfigured(!!status.apiKeyConfigured);setConversations(history);
+     if(history.length)setActiveId(history.slice().sort((a,b)=>b.updatedAt-a.updatedAt)[0].id);
+     setLoaded(true);
    }).catch(e=>{setError(e.message);setLoaded(true);});
  },[]);
- React.useEffect(()=>{if(loaded)void saveMessages(messages).catch(e=>setError(e.message));},[messages,loaded]);
-
+ React.useEffect(()=>{if(loaded)void saveConversations(conversations).catch(e=>setError(e.message));},[conversations,loaded]);
  async function saveKey(){
    setError("");setTesting(true);
-   try{
-     await invoke("settings.configureApiKey");
-     setConfigured(true);setShowSettings(false);
-   }catch(e:any){setError(e.message);}
+   try{await invoke("settings.configureApiKey");setConfigured(true);setShowSettings(false);}
+   catch(e:any){setError(e.message);}
    finally{setTesting(false);}
  }
  async function send(){
-   if(!input.trim()||busy)return;
-   const prompt=input.trim(),requestId=id();
+   if(!input.trim()||busy||!configured)return;
+   const prompt=input.trim(),requestId=id(),chatId=activeId||id(),userMessage:ChatMessage={id:id(),role:"user",text:prompt},assistantMessage:ChatMessage={id:id(),role:"assistant",text:""};
+   const apiMessages=[...messages,userMessage].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0);
    setInput("");setError("");setReasoning("");setBusy(true);setActiveRequest(requestId);
-   setMessages(current=>[...current,{id:id(),role:"user",text:prompt},{id:id(),role:"assistant",text:""}]);
+   setConversations(current=>{
+     const exists=current.some(c=>c.id===chatId);
+     if(!exists)return [...current,{id:chatId,title:prompt.slice(0,32),updatedAt:Date.now(),messages:[userMessage,assistantMessage]}];
+     return current.map(c=>c.id===chatId?{...c,title:c.messages.length?c.title:prompt.slice(0,32),updatedAt:Date.now(),messages:[...c.messages,userMessage,assistantMessage]}:c);
+   });
+   if(!activeId)setActiveId(chatId);
    try{
-     await invoke("api.chat",{model,messages:[...messages,{id:id(),role:"user",text:prompt}].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0),thinking},(chunk,kind)=>{
+     await invoke("api.chat",{model,messages:apiMessages,thinking},(chunk,kind)=>{
        if(kind==="reasoning")setReasoning(v=>v+chunk);
-       else setMessages(current=>current.map((m,i)=>i===current.length-1?{...m,text:m.text+chunk}:m));
+       else setConversations(current=>current.map(c=>c.id===chatId?{...c,updatedAt:Date.now(),messages:c.messages.map((m,i)=>i===c.messages.length-1?{...m,text:m.text+chunk}:m)}:c));
      },requestId);
    }catch(e:any){setError(e.message);}
    finally{setBusy(false);setActiveRequest(null);}
  }
- async function stop(){
-   if(!activeRequest)return;
-   try{await invoke("api.cancel",{targetRequestId:activeRequest});}catch(e:any){setError(e.message);}
- }
- function newChat(){if(busy)return;setMessages([]);setError("");setInput("");}
+ async function stop(){if(!activeRequest)return;try{await invoke("api.cancel",{targetRequestId:activeRequest});}catch(e:any){setError(e.message);}}
+ function newChat(){if(busy)return;const chatId=id();setConversations(c=>[...c,{id:chatId,title:"新对话",updatedAt:Date.now(),messages:[]}]);setActiveId(chatId);setError("");setInput("");setReasoning("");}
  const canSend=!!input.trim()&&!busy&&configured;
  return <div className="shell">
   <aside><div className="brand"><div className="mark">D</div><div><b>DeepDesk</b><small>YOUR AI, YOUR DESKTOP</small></div></div>
    <button className="new" onClick={newChat}>＋ 新建对话</button>
-   <div className="side-note">本地优先 · 自带 API Key</div>
-   <div className="side-bottom">会话数据保存在本机<br/>独立第三方客户端</div>
+   <div className="history-label">最近对话</div><div className="history-list">{conversations.slice().sort((a,b)=>b.updatedAt-a.updatedAt).map(c=><button key={c.id} className={c.id===activeId?"history-item active":"history-item"} onClick={()=>{if(!busy){setActiveId(c.id);setError("");setReasoning("");}}}>{c.title||"新对话"}</button>)}</div>
+   <div className="side-bottom">会话与消息保存在本机<br/>独立第三方客户端</div>
   </aside>
-  <main><header><div><b>新对话</b><span className="sub">模型推理由你的 API 账号提供</span></div><div className="header-actions">
+  <main><header><div><b>{active?.title||"新对话"}</b><span className="sub">模型推理由你的 API 账号提供</span></div><div className="header-actions">
     <select value={model} onChange={e=>setModel(e.target.value)}><option value="deepseek-flash">DeepSeek-V4.1-Flash</option><option value="deepseek-v4-pro">DeepSeek-V4-Pro</option></select>
     <button className="settings-button" onClick={()=>setShowSettings(true)}>API 设置</button>
    </div></header>
