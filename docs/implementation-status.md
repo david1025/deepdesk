@@ -18,7 +18,7 @@
 - [x] DeepSeek ASR voice input via native WPF bridge.
 - [x] Microphone permission scoped to the DeepDesk virtual origin.
 - [x] Recording size cap and cleanup on app component shutdown.
-- [ ] Add citations and rich search result cards.
+- [x] Add search result source cards and safe external-link opening.
 - [x] Add TTS read-aloud with PCM playback via native bridge.
 - [ ] Add image/file attachment upload and file references.
 - [ ] Add rename/delete/search/export/import for local conversation history.
