@@ -19,10 +19,10 @@ Stream event:
 
 ## Actions
 - `app.getStatus`: returns app name/version and whether an API key is configured; never returns the key.
-- `settings.saveApiKey`: accepts an API key and stores it using DPAPI.
+- `settings.configureApiKey`: opens a native WPF secure-entry dialog, verifies the key using GET /models, then stores it using DPAPI.
 - `settings.clearApiKey`: deletes the protected key.
 - `settings.testApiKey`: verifies the configured key using GET /models.
-- `api.chat`: accepts model, message history, and thinking flag; emits stream events.
+- `api.chat`: accepts model, text message history, thinking and search flags; emits content, reasoning, and progress stream events.\n- `speech.transcribe`: accepts a size-limited Base64 WAV recording, calls POST /v1/tools/asr natively, and returns recognized text.
 - `api.cancel`: accepts targetRequestId and cancels only that request.
 
 ## Chat payload
