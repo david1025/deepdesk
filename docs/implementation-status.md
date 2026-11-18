@@ -3,35 +3,30 @@
 ## Milestone 0 — Windows-native foundation
 
 - [x] WPF + WebView2 host with packaged local UI.
-- [x] Origin-checked allowlisted native bridge.
-- [x] Native WPF API-key dialog and DPAPI CurrentUser credential storage.
-- [x] DeepSeek API key verification using GET /models.
-- [x] DeepSeek Anthropic-compatible Messages API with incremental SSE parsing.
-- [x] Thinking and answer deltas rendered separately.
-- [x] Search and URL-reading tool declarations with progress feedback.
-- [x] IndexedDB conversation persistence and conversation switching.
-- [x] Windows CI: TypeScript check, Rspack build, WPF compile.
+- [x] WebView2 profile is stored under the local DeepDesk application data directory.
+- [x] External HTTP(S) links open in the system browser.
+- [x] Microphone permission is scoped to the DeepDesk virtual origin.
 
-## Milestone 1 — daily chat client
+## Milestone 1 — Official DeepSeek Chat Demo integration
 
-- [x] Markdown rendering, GFM tables, math formulas, and syntax highlighting.
-- [x] DeepSeek ASR voice input via native WPF bridge.
-- [x] Microphone permission scoped to the DeepDesk virtual origin.
-- [x] Recording size cap and cleanup on app component shutdown.
-- [x] Add search result source cards and safe external-link opening.
-- [x] Add TTS read-aloud with PCM playback via native bridge.
-- [ ] Add image/file attachment upload and file references.
-- [ ] Add rename/delete/search/export/import for local conversation history.
-- [ ] Add model catalogue from GET /models and persistent user settings.
-- [ ] Windows runtime QA for microphone, TTS playback, streaming, cancellation, and long conversations.
+- [x] Build the official `deepseek-ai/chat-demo` source in CI.
+- [x] Pin upstream baseline to `5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c`.
+- [x] Stage the official `dist` directly into the Windows host.
+- [x] Keep upstream localStorage / IndexedDB behavior instead of reimplementing chat storage.
+- [x] Produce lightweight and self-contained Windows x64 artifacts.
+- [ ] Windows runtime acceptance of every upstream feature.
+- [ ] Verify exact UI parity at the same viewport and interaction states.
 
-## Milestone 2 — feature parity and release
+## Milestone 2 — Release
 
-- [ ] Port remaining upstream DeepSeek chat-demo components and interaction details.
-- [ ] Add validated file upload lifecycle and attachment previews.
-- [ ] Add history ZIP backup/restore with transactional import.
-- [x] Publish self-contained win-x64 build to GitHub Actions artifact (14-day retention).
-- [ ] Add signed installer, upgrade/uninstall QA, and auto-update.
-- [ ] Add automated protocol tests and Windows UI smoke tests.
+- [ ] File picker / drag-drop / paste acceptance.
+- [ ] Voice input and read-aloud acceptance.
+- [ ] Search, link reading, source citation acceptance.
+- [ ] ZIP history import/export acceptance.
+- [ ] Theme, language, settings, and location acceptance.
+- [ ] Signed installer.
+- [ ] Upgrade/uninstall QA.
+- [ ] Auto-update.
+- [ ] Automated Windows UI smoke tests.
 
-The current implementation is a working-in-progress foundation. CI compilation does not replace runtime tests against a real DeepSeek API key and Windows microphone.
+Compilation is not considered feature parity.
