@@ -41,10 +41,18 @@ internal sealed class WebViewBridge
                 case "app.getStatus":
                     Reply(requestId, true, new { apiKeyConfigured = _credentials.Exists, appVersion = "0.1.0" });
                     break;
-                case "settings.saveApiKey":
-                    if (!payload.TryGetProperty("apiKey", out var key)) throw new ApiServiceException("INVALID_REQUEST", "缺少 API Key。");
-                    _credentials.SaveApiKey(key.GetString() ?? "");
-                    Reply(requestId, true, new { saved = true });
+                case "settings.configureApiKey":
+                    var dialog = new ApiKeyDialog { Owner = System.Windows.Application.Current.MainWindow };
+                    if (dialog.ShowDialog() == true)
+                    {
+                        _credentials.SaveApiKey(dialog.ApiKey);
+                        await _api.TestKeyAsync(CancellationToken.None);
+                        Reply(requestId, true, new { saved = true, valid = true });
+                    }
+                    else
+                    {
+                        throw new ApiServiceException("REQUEST_CANCELLED", "已取消 API Key 配置。");
+                    }
                     break;
                 case "settings.clearApiKey":
                     _credentials.Clear();
