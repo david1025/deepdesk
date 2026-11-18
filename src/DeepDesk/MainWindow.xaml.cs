@@ -27,12 +27,11 @@ public partial class MainWindow : Window
             var core = Browser.CoreWebView2;
             core.PermissionRequested += (_, args) =>
             {
-                if (args.PermissionKind == CoreWebView2PermissionKind.Microphone &&
-                    Uri.TryCreate(args.Uri, UriKind.Absolute, out var permissionUri) &&
-                    permissionUri.Scheme == "https" && permissionUri.Host == "deepdesk.local")
-                    args.State = CoreWebView2PermissionState.Allow;
-                else
-                    args.State = CoreWebView2PermissionState.Deny;
+                if (args.PermissionKind != CoreWebView2PermissionKind.Microphone) return;
+                args.State = Uri.TryCreate(args.Uri, UriKind.Absolute, out var permissionUri) &&
+                    permissionUri.Scheme == "https" && permissionUri.Host == "deepdesk.local"
+                    ? CoreWebView2PermissionState.Allow
+                    : CoreWebView2PermissionState.Deny;
             };
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = true;
@@ -41,9 +40,15 @@ public partial class MainWindow : Window
                 CoreWebView2HostResourceAccessKind.DenyCors);
             core.NavigationStarting += (_, args) =>
             {
-                if (!Uri.TryCreate(args.Uri, UriKind.Absolute, out var uri) ||
-                    uri.Scheme != "https" || uri.Host != "deepdesk.local")
-                    args.Cancel = true;
+                if (Uri.TryCreate(args.Uri, UriKind.Absolute, out var uri) &&
+                    uri.Scheme == "https" && uri.Host == "deepdesk.local") return;
+                args.Cancel = true;
+                OpenExternal(args.Uri);
+            };
+            core.NewWindowRequested += (_, args) =>
+            {
+                args.Handled = true;
+                OpenExternal(args.Uri);
             };
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
             Browser.Source = new Uri("https://deepdesk.local/index.html");
@@ -56,5 +61,16 @@ public partial class MainWindow : Window
             MessageBox.Show($"DeepDesk 启动失败：{ex.Message}", "DeepDesk", MessageBoxButton.OK, MessageBoxImage.Error);
             Close();
         }
+    }
+
+    private static void OpenExternal(string value)
+    {
+        if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
+            (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) ||
+            uri.UserInfo.Length > 0) return;
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri)
+        {
+            UseShellExecute = true
+        });
     }
 }
