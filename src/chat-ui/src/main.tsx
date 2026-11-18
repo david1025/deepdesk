@@ -4,7 +4,7 @@ import { loadMessages, saveMessages, type ChatMessage } from "./chatStore";
 import "./style.css";
 
 type Envelope = { type: string; requestId: string; success?: boolean; data?: any; event?: string };
-type Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any)=>void };
+type Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any,kind?:string)=>void };
 const pending = new Map<string, Pending>();
 const id = () => crypto.randomUUID();
 function invoke(action:string,payload:any={},onStream?:(v:any)=>void,requestId=id()):Promise<any>{
@@ -17,7 +17,7 @@ declare global { interface Window { chrome:any; deepDeskReceive:(m:Envelope)=>vo
 window.deepDeskReceive=(m)=>{
   const p=pending.get(m.requestId); if(!p)return;
   if(m.type==="stream"){
-    if(m.event==="delta")p.onStream?.(m.data?.text??"");
+    if(m.event==="delta")p.onStream?.(m.data?.text??"",m.data?.kind??"content");
     if(m.event==="completed"){p.resolve(true);pending.delete(m.requestId);}
     return;
   }
@@ -32,7 +32,7 @@ function App(){
  const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[messages,setMessages]=React.useState<ChatMessage[]>([]);
- const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true);
+ const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[reasoning,setReasoning]=React.useState("");
  const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false);
  React.useEffect(()=>{
    Promise.all([invoke("app.getStatus"),loadMessages()]).then(([status,history])=>{
@@ -52,7 +52,7 @@ function App(){
  async function send(){
    if(!input.trim()||busy)return;
    const prompt=input.trim(),requestId=id();
-   setInput("");setError("");setBusy(true);setActiveRequest(requestId);
+   setInput("");setError("");setReasoning("");setBusy(true);setActiveRequest(requestId);
    setMessages(current=>[...current,{id:id(),role:"user",text:prompt},{id:id(),role:"assistant",text:""}]);
    try{
      await invoke("api.chat",{model,messages:[...messages,{id:id(),role:"user",text:prompt}].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0),thinking},chunk=>{
@@ -80,7 +80,7 @@ function App(){
    <section className="conversation">
     {!messages.length&&!busy?<div className="welcome"><div className="welcome-icon">✳</div><h1>有什么可以帮忙的？</h1><p>使用你自己的 DeepSeek API，开始一段新的对话。</p><div className="suggestions"><button onClick={()=>setInput("解释一下人工智能中的 Agent 架构")}>解释一个技术概念</button><button onClick={()=>setInput("帮我制定一个清晰的项目计划")}>制定项目计划</button></div></div>:
       <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="bubble">{m.text|| (busy&&m.role==="assistant"?"正在思考…":"")}</div></div>)}</div>}
-    {error&&<div className="error">{error}</div>}
+    {reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
     <div className="composer-bottom"><label><input type="checkbox" checked={thinking} onChange={e=>setThinking(e.target.checked)}/> 深度思考</label><span>Enter 发送 · Shift + Enter 换行</span>
