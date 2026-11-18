@@ -34,7 +34,7 @@ internal sealed class DeepSeekApiService
             messages.GetArrayLength() is < 1 or > 100)
             throw new ApiServiceException("INVALID_REQUEST", "消息列表无效。");
 
-        var body = new Dictionary<string, object?> { ["model"] = model, ["messages"] = messages };
+        var body = new Dictionary<string, object?> { ["model"] = model, ["messages"] = messages, ["stream"] = true };
         if (payload.TryGetProperty("thinking", out var thinking) && thinking.ValueKind is JsonValueKind.True or JsonValueKind.False)
             body["thinking"] = new { type = thinking.GetBoolean() ? "enabled" : "disabled" };
 
