@@ -34,6 +34,25 @@ public partial class MainWindow : Window
                     : CoreWebView2PermissionState.Deny;
             };
             core.Settings.AreDevToolsEnabled = false;
+            core.AddWebResourceRequestedFilter("https://api.deepseek.com/*", CoreWebView2WebResourceContext.All);
+            core.WebResourceRequested += (_, args) =>
+            {
+                if (!_credentials.Exists) return;
+                try
+                {
+                    var requestUri = new Uri(args.Request.Uri);
+                    if (requestUri.Scheme == "https" && requestUri.Host == "api.deepseek.com")
+                    {
+                        var key = _credentials.ReadApiKey();
+                        args.Request.Headers.SetHeader("Authorization", $"Bearer {key}");
+                        args.Request.Headers.SetHeader("x-api-key", key);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    RuntimeLog.Write($"API credential injection failed: {ex.GetType().Name}");
+                }
+            };
             core.Settings.AreDefaultContextMenusEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
             core.SetVirtualHostNameToFolderMapping("deepdesk.local", AppPaths.UiDirectory,
@@ -51,6 +70,11 @@ public partial class MainWindow : Window
                 OpenExternal(args.Uri);
             };
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
+            var nativeCredentialBootstrap = _credentials.Exists
+                ? "localStorage.setItem('chat-demo:api-key','DEEPDESK_NATIVE_CREDENTIAL');"
+                : "";
+            await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                $"try{{{nativeCredentialBootstrap}}}catch{{}}");
             Browser.Source = new Uri("https://deepdesk.local/index.html");
             Browser.Visibility = Visibility.Visible;
             LoadingPanel.Visibility = Visibility.Collapsed;
