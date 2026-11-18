@@ -73,9 +73,9 @@ internal sealed class WebViewBridge
                     if (!_requests.TryAdd(requestId, linked)) throw new ApiServiceException("INVALID_REQUEST", "请求 ID 重复。");
                     try
                     {
-                        await _api.StreamChatAsync(requestId, payload, async text =>
+                        await _api.StreamChatAsync(requestId, payload, async (text, kind) =>
                         {
-                            await _web.ExecuteScriptAsync($"window.deepDeskReceive({JsonSerializer.Serialize(new { type = "stream", requestId, @event = "delta", data = new { text } }, JsonOptions)})");
+                            await _web.ExecuteScriptAsync($"window.deepDeskReceive({JsonSerializer.Serialize(new { type = "stream", requestId, @event = "delta", data = new { text, kind } }, JsonOptions)})");
                         }, linked.Token);
                         await _web.ExecuteScriptAsync($"window.deepDeskReceive({JsonSerializer.Serialize(new { type = "stream", requestId, @event = "completed" }, JsonOptions)})");
                     }
