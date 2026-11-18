@@ -787,4 +787,28 @@ export = styles
   await write(file, s)
 }
 
+
+// ---------- TypeScript fixes from the first model/usage CI run ----------
+{
+  const file = 'src/components/chatInput/ModelSettings.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import type { ChatModel } from '../../services/api/types.js'",
+    "import type { ChatModel, ReasoningEffort } from '../../services/api/types.js'", file)
+  s = replaceOnce(s,
+    "import { setModel, setReasoningEffort, useSettings, type ReasoningEffort } from '../../services/settings.js'",
+    "import { setModel, setReasoningEffort, useSettings } from '../../services/settings.js'", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/services/chat/db.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "message is AssistantMessage => message.role === 'assistant' && !!message.usage",
+    "message is AssistantMessage & { usage: NonNullable<AssistantMessage['usage']> } => message.role === 'assistant' && !!message.usage", file)
+  await write(file, s)
+}
+
+
 console.log('DeepDesk Chat Demo patches applied.')
