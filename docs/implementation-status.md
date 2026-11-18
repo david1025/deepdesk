@@ -15,7 +15,8 @@
 - [x] Stage the official `dist` directly into the Windows host.
 - [x] Keep upstream localStorage / IndexedDB behavior for conversations and attachments.
 - [x] Produce lightweight and self-contained Windows x64 artifacts.
-- [x] Owner-reported runtime checks: chat, model switching, ZIP merge/replace import, export.
+- [x] Owner-reported runtime checks: Windows launch, chat, streaming, local history, model switching, ZIP merge/replace import, export.
+- [x] Owner-reported professional-mode persistence after restart and Deep Thinking button hidden when enabled.
 - [ ] Full Windows runtime acceptance of every upstream feature.
 - [ ] Verify exact UI parity at the same viewport and interaction states.
 
@@ -24,7 +25,7 @@
 - [x] Fix replacement API-key flow to verify new key natively before saving.
 - [x] Correct professional-mode effort mapping: `none/low/high/max` drives the mode via `output_config.effort`; omit explicit `thinking.type` in this mode.
 - [x] Add a repeatable Windows manual acceptance matrix in `docs/acceptance.md`.
-- [ ] Run the complete matrix on Windows with a real API key.
+- [ ] Run the remaining matrix on Windows with a real API key (owner has verified core chat, history, ZIP import/export and professional-mode UI persistence).
 - [ ] Validate balance and usage figures against provider responses.
 - [ ] Verify file picker, paste, drag/drop, ASR, TTS, search, and link reading.
 - [ ] Verify cancellation, rate limits, insufficient balance, offline and timeout recovery.
