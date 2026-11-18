@@ -25,6 +25,15 @@ public partial class MainWindow : Window
             var environment = await CoreWebView2Environment.CreateAsync(null, AppPaths.WebViewDirectory);
             await Browser.EnsureCoreWebView2Async(environment);
             var core = Browser.CoreWebView2;
+            core.PermissionRequested += (_, args) =>
+            {
+                if (args.PermissionKind == CoreWebView2PermissionKind.Microphone &&
+                    Uri.TryCreate(args.Uri, UriKind.Absolute, out var permissionUri) &&
+                    permissionUri.Scheme == "https" && permissionUri.Host == "deepdesk.local")
+                    args.State = CoreWebView2PermissionState.Allow;
+                else
+                    args.State = CoreWebView2PermissionState.Deny;
+            };
             core.Settings.AreDevToolsEnabled = false;
             core.Settings.AreDefaultContextMenusEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
