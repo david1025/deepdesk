@@ -32,7 +32,7 @@ function App(){
  const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
- const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[reasoning,setReasoning]=React.useState("");
+ const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
  const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false);
  const active=conversations.find(c=>c.id===activeId);
  const messages=active?.messages??[];
@@ -54,7 +54,7 @@ function App(){
    if(!input.trim()||busy||!configured)return;
    const prompt=input.trim(),requestId=id(),chatId=activeId||id(),userMessage:ChatMessage={id:id(),role:"user",text:prompt},assistantMessage:ChatMessage={id:id(),role:"assistant",text:""};
    const apiMessages=[...messages,userMessage].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0);
-   setInput("");setError("");setReasoning("");setBusy(true);setActiveRequest(requestId);
+   setInput("");setError("");setReasoning("");setStreamStatus("");setBusy(true);setActiveRequest(requestId);
    setConversations(current=>{
      const exists=current.some(c=>c.id===chatId);
      if(!exists)return [...current,{id:chatId,title:prompt.slice(0,32),updatedAt:Date.now(),messages:[userMessage,assistantMessage]}];
@@ -67,7 +67,7 @@ function App(){
        else setConversations(current=>current.map(c=>c.id===chatId?{...c,updatedAt:Date.now(),messages:c.messages.map((m,i)=>i===c.messages.length-1?{...m,text:m.text+chunk}:m)}:c));
      },requestId);
    }catch(e:any){setError(e.message);}
-   finally{setBusy(false);setActiveRequest(null);}
+   finally{setBusy(false);setActiveRequest(null);setStreamStatus("");}
  }
  async function stop(){if(!activeRequest)return;try{await invoke("api.cancel",{targetRequestId:activeRequest});}catch(e:any){setError(e.message);}}
  function newChat(){if(busy)return;const chatId=id();setConversations(c=>[...c,{id:chatId,title:"新对话",updatedAt:Date.now(),messages:[]}]);setActiveId(chatId);setError("");setInput("");setReasoning("");}
@@ -85,10 +85,10 @@ function App(){
    <section className="conversation">
     {!messages.length&&!busy?<div className="welcome"><div className="welcome-icon">✳</div><h1>有什么可以帮忙的？</h1><p>使用你自己的 DeepSeek API，开始一段新的对话。</p><div className="suggestions"><button onClick={()=>setInput("解释一下人工智能中的 Agent 架构")}>解释一个技术概念</button><button onClick={()=>setInput("帮我制定一个清晰的项目计划")}>制定项目计划</button></div></div>:
       <div className="message-list">{messages.map(m=><div className="message" key={m.id}><div className={m.role==="user"?"avatar user-avatar":"avatar"}>{m.role==="user"?"我":"AI"}</div><div className="bubble">{m.text|| (busy&&m.role==="assistant"?"正在思考…":"")}</div></div>)}</div>}
-    {reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
+    {streamStatus&&<div className="stream-status">{streamStatus}</div>}{reasoning&&<details className="reasoning" open><summary>深度思考过程</summary><div>{reasoning}</div></details>}{error&&<div className="error">{error}</div>}
    </section>
    <footer><div className="composer"><textarea value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();void send();}}} placeholder="给 DeepSeek 发送消息…" rows={3}/>
-    <div className="composer-bottom"><label><input type="checkbox" checked={thinking} onChange={e=>setThinking(e.target.checked)}/> 深度思考</label><span>Enter 发送 · Shift + Enter 换行</span>
+    <div className="composer-bottom"><div className="toggles"><label><input type="checkbox" checked={thinking} onChange={e=>setThinking(e.target.checked)}/> 深度思考</label><label><input type="checkbox" checked={search} onChange={e=>setSearch(e.target.checked)}/> 联网搜索</label></div><span>Enter 发送 · Shift + Enter 换行</span>
      {busy?<button className="send stop" onClick={()=>void stop()}>■</button>:<button className="send" disabled={!canSend} onClick={()=>void send()}>↑</button>}
     </div></div><div className="footnote">AI 生成内容可能不准确。请求将直接发送至 DeepSeek 官方 API。</div></footer>
   </main>
