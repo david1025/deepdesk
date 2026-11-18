@@ -1,0 +1,29 @@
+name: Windows build
+on:
+  push:
+    branches: [main, "feature/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install UI dependencies
+        working-directory: src/chat-ui
+        run: pnpm install
+      - name: Build UI
+        working-directory: src/chat-ui
+        run: pnpm build
+      - name: Build WPF application
+        run: dotnet build src/DeepDesk/DeepDesk.csproj -c Release
