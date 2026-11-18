@@ -11,7 +11,8 @@ import { loadConversations, saveConversations, type ChatMessage, type Conversati
 import "./style.css";
 
 type Envelope = { type: string; requestId: string; success?: boolean; data?: any; event?: string };
-type SourceLink = {title:string|null;url:string;snippet:string|null;siteName:string|null};\ntype Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any,kind?:string)=>void };
+type SourceLink = {title:string|null;url:string;snippet:string|null;siteName:string|null};
+type Pending = { resolve:(v:any)=>void; reject:(e:Error)=>void; onStream?:(v:any,kind?:string)=>void };
 const pending = new Map<string, Pending>();
 const id = () => crypto.randomUUID();
 function invoke(action:string,payload:any={},onStream?:(v:any,kind?:string)=>void,requestId=id()):Promise<any>{
