@@ -55,8 +55,9 @@ function App(){
    setInput("");setError("");setReasoning("");setBusy(true);setActiveRequest(requestId);
    setMessages(current=>[...current,{id:id(),role:"user",text:prompt},{id:id(),role:"assistant",text:""}]);
    try{
-     await invoke("api.chat",{model,messages:[...messages,{id:id(),role:"user",text:prompt}].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0),thinking},chunk=>{
-       setMessages(current=>current.map((m,i)=>i===current.length-1?{...m,text:m.text+chunk}:m));
+     await invoke("api.chat",{model,messages:[...messages,{id:id(),role:"user",text:prompt}].map(m=>({role:m.role,content:m.text})).filter(m=>m.content.length>0),thinking},(chunk,kind)=>{
+       if(kind==="reasoning")setReasoning(v=>v+chunk);
+       else setMessages(current=>current.map((m,i)=>i===current.length-1?{...m,text:m.text+chunk}:m));
      },requestId);
    }catch(e:any){setError(e.message);}
    finally{setBusy(false);setActiveRequest(null);}
