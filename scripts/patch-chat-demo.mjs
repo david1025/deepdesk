@@ -389,8 +389,11 @@ export const getNativeBalance = () => nativeRequest<{
     "import styles from './ChatInput.module.css'\n",
     "import styles from './ChatInput.module.css'\nimport { SessionUsage } from '../usage/SessionUsage.js'\n", file)
   s = replaceOnce(s,
+    "  return (\n    <div\n      className={clsx(styles.wrapper",
+    "  return (\n    <>\n    <div\n      className={clsx(styles.wrapper", file)
+  s = replaceOnce(s,
     "      {dragging ? <DragMask /> : null}\n    </div>",
-    "      {dragging ? <DragMask /> : null}\n    </div>\n    <SessionUsage sessionId={sessionId} />", file)
+    "      {dragging ? <DragMask /> : null}\n    </div>\n    <SessionUsage sessionId={sessionId} />\n    </>", file)
   await write(file, s)
 }
 
