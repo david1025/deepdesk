@@ -1,42 +1,52 @@
 # DeepDesk
 
-DeepDesk is a Windows desktop wrapper for the **official DeepSeek Chat Demo**. Its UI is built from the upstream `deepseek-ai/chat-demo` source at a pinned commit, rather than re-created with a look-alike React interface.
+DeepDesk is a Windows desktop shell for the official DeepSeek Chat Demo.
 
-> DeepDesk is an independent third-party desktop wrapper. It is not affiliated with or endorsed by DeepSeek.
+**The acceptance target is the official UI and feature set, not a visual imitation.**
 
-## Product acceptance target
+## Architecture
 
-The acceptance baseline is the upstream Chat Demo, not a custom approximation. The desktop build uses the upstream UI source and its native browser storage (localStorage + IndexedDB) inside a WebView2 profile under `%LOCALAPPDATA%\DeepDesk\WebView2`.
+- **UI:** the upstream `deepseek-ai/chat-demo` source is checked out and built in CI at a pinned commit.
+- **Desktop shell:** .NET 10 WPF + Microsoft WebView2.
+- **API:** the official web UI talks directly to the configured DeepSeek API.
+- **Local data:** the official demo stores API settings in localStorage and conversations/attachments in IndexedDB; WebView2 keeps that data in `%LOCALAPPDATA%\\DeepDesk\\WebView2`.
+- **Windows integration:** native host provides the local HTTPS origin, microphone permission boundary, and external-link handling.
 
-Upstream source: https://github.com/deepseek-ai/chat-demo
-Pinned upstream commit: `5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c`
+The official project is a static frontend with no application backend and supports conversations, branches, streaming, deep thinking, search, link reading, citations, attachments, voice, Markdown, KaTeX, Mermaid, themes, and ZIP history import/export. citeturn104694search0
 
-## Desktop architecture
+## Upstream baseline
 
-- **Desktop host:** .NET 10 WPF + Microsoft WebView2
-- **UI:** official DeepSeek Chat Demo (React + TypeScript + Rspack), built from pinned upstream source in CI
-- **API:** official UI calls the configured DeepSeek API directly
-- **Local data:** WebView2 localStorage and IndexedDB in the app's local profile
-- **Desktop integration:** microphone permission scoped to the local app origin; external HTTP(S) links open in the system browser
+Pinned source:
 
-## Build and download
+`deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c`
 
-The GitHub Actions workflow checks out the official UI at the pinned commit, type-checks and builds it, stages its `dist` into the WPF host, then publishes two Windows x64 packages:
+This corresponds to the v0.1.1 release baseline. citeturn104694search2
 
-- `DeepDesk-win-x64-lite`: smaller, framework-dependent build; requires the .NET 10 Desktop Runtime and WebView2 Runtime.
-- `DeepDesk-win-x64`: larger self-contained build; still requires the WebView2 Runtime.
+## Windows builds
 
-Use the lite artifact first if download speed is an issue. Both artifacts are available from the latest successful [Windows Actions run](https://github.com/david1025/deepdesk/actions).
+CI produces:
 
-## Requirements for local development
+- **DeepDesk-win-x64-lite** — smaller, requires .NET 10 Desktop Runtime + WebView2 Runtime.
+- **DeepDesk-win-x64** — self-contained .NET runtime, still requires WebView2 Runtime.
 
-- Windows 10/11 x64
-- .NET 10 SDK
-- Node.js 22.12+ and pnpm 10+
-- Microsoft Edge WebView2 Runtime
+For a slow connection, download **DeepDesk-win-x64-lite** first.
 
-See [AGENTS.md](AGENTS.md), [docs/architecture.md](docs/architecture.md), and [docs/acceptance.md](docs/acceptance.md).
+## Development
 
-## Licensing
+The repository deliberately does not maintain a second hand-written copy of the DeepSeek Chat Demo UI. CI builds the upstream source and stages its `dist` into the WPF host.
 
-DeepDesk wrapper code is MIT-licensed. The upstream DeepSeek Chat Demo is MIT-licensed; its license is copied into the built UI. Third-party dependencies retain their respective licenses.
+For a local build:
+
+1. Clone this repository.
+2. Check out `deepseek-ai/chat-demo` at the pinned commit into `vendor/chat-demo`.
+3. Run `pnpm install --frozen-lockfile && pnpm build` inside `vendor/chat-demo`.
+4. Copy `vendor/chat-demo/dist` to `src/chat-ui/dist`.
+5. Run `dotnet build src/DeepDesk/DeepDesk.csproj -c Release`.
+
+## Acceptance
+
+See `docs/acceptance.md`. Compilation alone does not count as feature parity; each upstream capability must be exercised on Windows with a real API key.
+
+## License
+
+DeepDesk wrapper code is MIT-licensed. The upstream DeepSeek Chat Demo is MIT-licensed; its license is copied into the packaged UI. Third-party dependencies retain their licenses.
