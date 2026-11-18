@@ -29,6 +29,32 @@ internal sealed class DeepSeekApiService
             throw new ApiServiceException("API_REQUEST_FAILED", $"连接测试失败（HTTP {(int)response.StatusCode}）。");
     }
 
+    public async Task<string> TranscribeAsync(byte[] wav, CancellationToken cancellationToken)
+    {
+        if (wav.Length < 44 || wav.Length > 8 * 1024 * 1024)
+            throw new ApiServiceException("INVALID_REQUEST", "录音文件大小无效（最大 8 MiB）。");
+        using var form = new MultipartFormDataContent();
+        var audio = new ByteArrayContent(wav);
+        audio.Headers.ContentType = new MediaTypeHeaderValue("audio/wav");
+        form.Add(audio, "file", "recording.wav");
+        using var request = new HttpRequestMessage(HttpMethod.Post, "v1/tools/asr");
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _credentials.ReadApiKey());
+        request.Content = form;
+        using var response = await _http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            if (response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+                throw new ApiServiceException("API_AUTH_FAILED", "API Key 无效或无权访问。");
+            if ((int)response.StatusCode == 429)
+                throw new ApiServiceException("API_RATE_LIMITED", "语音识别请求过于频繁。");
+            throw new ApiServiceException("API_REQUEST_FAILED", $"语音识别失败（HTTP {(int)response.StatusCode}）。");
+        }
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        if (!json.RootElement.TryGetProperty("text", out var text) || text.ValueKind != JsonValueKind.String)
+            throw new ApiServiceException("API_PROTOCOL_ERROR", "语音识别返回格式无效。");
+        return text.GetString() ?? "";
+    }
+
     public async Task StreamChatAsync(string requestId, JsonElement payload,
         Func<string, string, Task> onEvent, CancellationToken cancellationToken)
     {
