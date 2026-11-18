@@ -378,7 +378,7 @@ export const getNativeBalance = () => nativeRequest<{
   s = replaceOnce(s, "import { useTranslate } from '../../i18n/index.js'\n",
     "import { useTranslate } from '../../i18n/index.js'\nimport { saveNativeApiKey } from '../../services/native.js'\n", file)
   s = replaceOnce(s, "      await verifyApiKey(apiKey)\n      setApiKey(apiKey)",
-    "      await verifyApiKey(apiKey)\n      try {\n        await saveNativeApiKey(apiKey)\n        setApiKey('DEEPDESK_NATIVE_CREDENTIAL')\n      } catch (error) {\n        if (error instanceof Error && error.message === 'Native Windows bridge is unavailable') {\n          setApiKey(apiKey)\n        } else {\n          throw error\n        }\n      }", file)
+    "      try {\n        // On Windows the host verifies the supplied key directly, avoiding the old-key header injector.\n        await saveNativeApiKey(apiKey)\n        setApiKey('DEEPDESK_NATIVE_CREDENTIAL')\n      } catch (error) {\n        if (error instanceof Error && error.message === 'Native Windows bridge is unavailable') {\n          // Browser-only development fallback; the Windows host never stores the key in renderer storage.\n          await verifyApiKey(apiKey)\n          setApiKey(apiKey)\n        } else {\n          throw error\n        }\n      }", file)
   await write(file, s)
 }
 
