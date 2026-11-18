@@ -323,4 +323,297 @@ export const importHistory = (
   await write(file, s)
 }
 
+
+// ---------- Native DPAPI credential bridge and usage UI ----------
+{
+  const file = 'src/services/native.ts'
+  await write(file, \`type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
+
+declare global {
+  interface Window {
+    chrome?: { webview?: { postMessage: (message: unknown) => void; addEventListener: (type: 'message', listener: (event: MessageEvent<NativeResponse>) => void) => void } }
+  }
+}
+
+const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
+let sequence = 0
+let listening = false
+
+export const nativeRequest = <T = Record<string, unknown>>(action: string, payload: Record<string, unknown> = {}): Promise<T> => {
+  const webview = window.chrome?.webview
+  if (!webview) return Promise.reject(new Error('Native Windows bridge is unavailable'))
+  if (!listening) {
+    listening = true
+    webview.addEventListener('message', (event) => {
+      const message = event.data
+      if (!message || message.type !== 'response') return
+      const task = pending.get(message.requestId)
+      if (!task) return
+      pending.delete(message.requestId)
+      if (message.success) task.resolve(message.data)
+      else {
+        const detail = message.data as { message?: string }
+        task.reject(new Error(detail?.message || 'Native request failed'))
+      }
+    })
+  }
+  const requestId = 'ui-' + (++sequence) + '-' + Date.now()
+  return new Promise<T>((resolve, reject) => {
+    pending.set(requestId, { resolve: (value) => resolve(value as T), reject })
+    webview.postMessage({ requestId, action, payload })
+  })
+}
+
+export const saveNativeApiKey = (apiKey: string) => nativeRequest<{ saved: boolean }>('settings.saveApiKey', { apiKey })
+export const getNativeBalance = () => nativeRequest<{
+  is_available: boolean
+  balance_infos: Array<{ currency: 'CNY' | 'USD'; total_balance: string; granted_balance: string; topped_up_balance: string }>
+}>('api.getBalance')
+\`)
+}
+
+{
+  const file = 'src/components/settings/useApiKeyForm.ts'
+  let s = await read(file)
+  s = replaceOnce(s, "import { useTranslate } from '../../i18n/index.js'\n",
+    "import { useTranslate } from '../../i18n/index.js'\nimport { saveNativeApiKey } from '../../services/native.js'\n", file)
+  s = replaceOnce(s, "      await verifyApiKey(apiKey)\n      setApiKey(apiKey)",
+    "      await verifyApiKey(apiKey)\n      try {\n        await saveNativeApiKey(apiKey)\n        setApiKey('DEEPDESK_NATIVE_CREDENTIAL')\n      } catch (error) {\n        if (error instanceof Error && error.message === 'Native Windows bridge is unavailable') {\n          setApiKey(apiKey)\n        } else {\n          throw error\n        }\n      }", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/components/chatInput/ChatInput.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import styles from './ChatInput.module.css'\n",
+    "import styles from './ChatInput.module.css'\nimport { SessionUsage } from '../usage/SessionUsage.js'\n", file)
+  s = replaceOnce(s,
+    "      {dragging ? <DragMask /> : null}\n    </div>",
+    "      {dragging ? <DragMask /> : null}\n    </div>\n    <SessionUsage sessionId={sessionId} />", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/components/sider/Sider.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import styles from './Sider.module.css'\n",
+    "import styles from './Sider.module.css'\nimport { AccountUsage } from '../usage/AccountUsage.js'\n", file)
+  s = replaceOnce(s,
+    "      <div className={styles.bottom}>\n        <button type=\"button\" className={styles.settings} onClick={() => openSettings('general')}>",
+    "      <div className={styles.bottom}>\n        <button type=\"button\" className={styles.settings} onClick={() => openSettings('general')}>", file)
+  s = replaceOnce(s,
+    "        </button>\n      </div>\n      {deleting ? (",
+    "        </button>\n        {!mobile ? <AccountUsage /> : null}\n      </div>\n      {deleting ? (", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/services/chat/db.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "export const loadSessionIds = async (): Promise<string[]> =>",
+    "export const loadAllUsageMessages = async () => {\n  const sessions = await (await getDB()).getAll('sessions')\n  return sessions.flatMap((session) => session.messages.filter((message) => message.role === 'assistant' && message.usage).map((message) => ({ model: message.model, usage: message.usage!, completedAt: message.completedAt ?? message.createdAt })))\n}\n\nexport const loadSessionIds = async (): Promise<string[]> =>", file)
+  await write(file, s)
+}
+
+{
+  const file = 'src/components/usage/SessionUsage.tsx'
+  await write(file, \`import { useMemo } from 'react'
+import { useChatStore } from '../../services/chat/store.js'
+import type { AssistantMessage } from '../../services/chat/types.js'
+import styles from './Usage.module.css'
+
+export const SessionUsage = ({ sessionId }: { sessionId: string | null }) => {
+  const session = useChatStore((state) => sessionId ? state.sessionCache[sessionId] : undefined)
+  const usage = useMemo(() => {
+    const replies = (session?.messages ?? []).filter((message): message is AssistantMessage => message.role === 'assistant' && !!message.usage)
+    return replies.reduce((total, message) => ({
+      input: total.input + (message.usage?.input_tokens ?? 0),
+      cacheCreate: total.cacheCreate + (message.usage?.cache_creation_input_tokens ?? 0),
+      cacheRead: total.cacheRead + (message.usage?.cache_read_input_tokens ?? 0),
+      output: total.output + (message.usage?.output_tokens ?? 0),
+    }), { input: 0, cacheCreate: 0, cacheRead: 0, output: 0 })
+  }, [session])
+  const total = usage.input + usage.cacheCreate + usage.cacheRead + usage.output
+  if (!total) return null
+  const cacheRate = usage.cacheRead + usage.cacheCreate + usage.input > 0
+    ? Math.round(usage.cacheRead / (usage.cacheRead + usage.cacheCreate + usage.input) * 100)
+    : 0
+  return (
+    <div className={styles.sessionUsage} title={\`缓存读取 \${usage.cacheRead.toLocaleString()} · 未缓存输入 \${(usage.input + usage.cacheCreate).toLocaleString()} · 输出 \${usage.output.toLocaleString()}\`}>
+      <span>本会话</span>
+      <span>{total.toLocaleString()} tok</span>
+      <span>缓存命中 {cacheRate}%</span>
+      <span>输出 {usage.output.toLocaleString()}</span>
+    </div>
+  )
+}
+\`)
+}
+
+{
+  const file = 'src/components/usage/AccountUsage.tsx'
+  await write(file, \`import { useEffect, useMemo, useState } from 'react'
+import { useSettings } from '../../services/settings.js'
+import { getNativeBalance } from '../../services/native.js'
+import { loadAllUsageMessages } from '../../services/chat/db.js'
+import styles from './Usage.module.css'
+
+type Balance = Awaited<ReturnType<typeof getNativeBalance>>
+type UsageRecord = Awaited<ReturnType<typeof loadAllUsageMessages>>[number]
+
+const formatMoney = (value: number, currency: string) => new Intl.NumberFormat('zh-CN', { style: 'currency', currency, maximumFractionDigits: 4 }).format(value)
+const estimate = (records: UsageRecord[]) => records.reduce((sum, record) => {
+  const pro = record.model === 'deepseek-v4-pro'
+  const input = record.usage.input_tokens + record.usage.cache_creation_input_tokens
+  const cache = record.usage.cache_read_input_tokens
+  const output = record.usage.output_tokens
+  // Peak-hour CNY list prices. Search/fetch, OCR, ASR and TTS are excluded.
+  return sum + (input * (pro ? 9 : 2) + cache * (pro ? .3 : .04) + output * (pro ? 27 : 8)) / 1_000_000
+}, 0)
+
+export const AccountUsage = () => {
+  const apiKey = useSettings((state) => state.apiKey)
+  const [balance, setBalance] = useState<Balance | null>(null)
+  const [records, setRecords] = useState<UsageRecord[]>([])
+  const [error, setError] = useState('')
+  const [updated, setUpdated] = useState<number | null>(null)
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+
+  const refresh = async () => {
+    if (!apiKey || busy) return
+    setBusy(true)
+    setError('')
+    try {
+      const [nextBalance, nextRecords] = await Promise.all([getNativeBalance(), loadAllUsageMessages()])
+      setBalance(nextBalance)
+      setRecords(nextRecords)
+      setUpdated(Date.now())
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  useEffect(() => {
+    if (apiKey) void refresh()
+  }, [apiKey])
+
+  const stats = useMemo(() => {
+    const now = new Date()
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+    const today = records.filter((item) => item.completedAt >= todayStart)
+    const month = records.filter((item) => item.completedAt >= monthStart)
+    return {
+      totalTokens: records.reduce((sum, item) => sum + item.usage.input_tokens + item.usage.cache_creation_input_tokens + item.usage.cache_read_input_tokens + item.usage.output_tokens, 0),
+      todayCost: estimate(today),
+      monthCost: estimate(month),
+      count: records.length,
+    }
+  }, [records])
+
+  const info = balance?.balance_infos?.[0]
+  const currency = info?.currency ?? 'CNY'
+  const amount = info ? Number(info.total_balance) : null
+
+  return (
+    <div className={styles.accountUsage} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button type="button" className={styles.balanceButton} onClick={() => setOpen((value) => !value)} aria-expanded={open}>
+        <span className={styles.walletIcon}>◉</span>
+        <span>{amount === null ? (apiKey ? '额度' : '配置 API') : formatMoney(amount, currency)}</span>
+      </button>
+      {open ? (
+        <div className={styles.balancePopover} role="dialog" aria-label="API 账户用量">
+          <div className={styles.popoverHeader}><strong>DeepSeek API 账户</strong><span>{balance?.is_available ? '可用' : balance ? '余额不足' : '未连接'}</span></div>
+          {info ? <>
+            <div className={styles.balanceAmount}>{formatMoney(Number(info.total_balance), currency)}</div>
+            <div className={styles.balanceSplit}><span>充值余额</span><b>{formatMoney(Number(info.topped_up_balance), currency)}</b></div>
+            <div className={styles.balanceSplit}><span>赠送余额</span><b>{formatMoney(Number(info.granted_balance), currency)}</b></div>
+          </> : <p className={styles.balanceError}>{error || (apiKey ? '正在查询余额…' : '请先配置 API Key')}</p>}
+          <div className={styles.popoverDivider} />
+          <div className={styles.balanceSplit}><span>今日 Token 费用估算</span><b>{formatMoney(stats.todayCost, 'CNY')}</b></div>
+          <div className={styles.balanceSplit}><span>本月 Token 费用估算</span><b>{formatMoney(stats.monthCost, 'CNY')}</b></div>
+          <div className={styles.balanceSplit}><span>本机累计 Token</span><b>{stats.totalTokens.toLocaleString()}</b></div>
+          <div className={styles.balanceSplit}><span>已统计回复</span><b>{stats.count}</b></div>
+          <div className={styles.popoverFoot}>
+            <small>{updated ? '更新于 ' + new Date(updated).toLocaleTimeString() : '余额为官方实时查询；费用为本机估算'}</small>
+            <button type="button" disabled={busy || !apiKey} onClick={() => void refresh()}>{busy ? '刷新中…' : '刷新'}</button>
+          </div>
+          <small className={styles.estimateNote}>费用按当前公开高峰单价估算；不含联网搜索/抓取、文件解析及语音费用。其他设备的 API 消耗不会计入本机统计。</small>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+\`)
+}
+
+{
+  const file = 'src/components/usage/Usage.module.css'
+  await write(file, \`.sessionUsage {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 14px;
+  padding: 4px 10px 0;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+  line-height: 16px;
+  user-select: none;
+}
+.accountUsage { position: relative; display: flex; align-items: center; margin: auto 0; }
+.balanceButton {
+  display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2); border-radius: 18px;
+  color: var(--dsw-alias-label-primary); background: var(--dsw-specific-sidebar-fill);
+  font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap;
+}
+.walletIcon { color: var(--dsw-alias-brand-text); }
+.balancePopover {
+  position: absolute; z-index: 1000; left: 0; bottom: calc(100% + 8px); width: 286px;
+  padding: 14px; border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px;
+  background: var(--dsw-alias-bg-layer-3); color: var(--dsw-alias-label-primary);
+  box-shadow: 0 8px 32px rgba(0,0,0,.14); font-size: 12px;
+}
+.popoverHeader,.balanceSplit,.popoverFoot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.popoverHeader span { color: var(--dsw-alias-label-tertiary); }
+.balanceAmount { margin: 10px 0 12px; font-size: 25px; font-weight: 650; font-variant-numeric: tabular-nums; }
+.balanceSplit { padding: 5px 0; color: var(--dsw-alias-label-secondary); }
+.balanceSplit b { color: var(--dsw-alias-label-primary); font-weight: 550; font-variant-numeric: tabular-nums; }
+.popoverDivider { height:1px; margin: 9px 0; background: var(--dsw-alias-border-l1); }
+.popoverFoot { margin-top: 10px; }
+.popoverFoot small,.estimateNote { color: var(--dsw-alias-label-tertiary); font-size: 10px; line-height: 1.5; }
+.popoverFoot button { border:0; background:none; color:var(--dsw-alias-brand-text); cursor:pointer; }
+.popoverFoot button:disabled { opacity:.5; cursor:default; }
+.balanceError { color: var(--dsw-alias-state-error-primary); }
+.estimateNote { display:block; margin-top:8px; }
+\`)
+}
+{
+  const file = 'src/components/usage/Usage.module.css.d.ts'
+  await write(file, \`declare const styles: {
+  readonly "sessionUsage": string;
+  readonly "accountUsage": string;
+  readonly "balanceButton": string;
+  readonly "walletIcon": string;
+  readonly "balancePopover": string;
+  readonly "popoverHeader": string;
+  readonly "balanceAmount": string;
+  readonly "balanceSplit": string;
+  readonly "popoverDivider": string;
+  readonly "popoverFoot": string;
+  readonly "balanceError": string;
+  readonly "estimateNote": string;
+}
+export = styles
+\`)
+}
+
+
 console.log('DeepDesk Chat Demo patches applied.')
