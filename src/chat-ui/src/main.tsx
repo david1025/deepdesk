@@ -26,6 +26,7 @@ window.deepDeskReceive=(m)=>{
     pending.delete(m.requestId);
   }
 };
+window.chrome.webview.addEventListener("message",(event:any)=>window.deepDeskReceive(event.data));
 
 function App(){
  const [configured,setConfigured]=React.useState(false),[showSettings,setShowSettings]=React.useState(false);
