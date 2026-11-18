@@ -33,7 +33,8 @@ function App(){
  const [busy,setBusy]=React.useState(false),[activeRequest,setActiveRequest]=React.useState<string|null>(null);
  const [input,setInput]=React.useState(""),[conversations,setConversations]=React.useState<Conversation[]>([]),[activeId,setActiveId]=React.useState("");
  const [error,setError]=React.useState(""),[model,setModel]=React.useState("deepseek-flash"),[thinking,setThinking]=React.useState(true),[search,setSearch]=React.useState(false),[reasoning,setReasoning]=React.useState(""),[streamStatus,setStreamStatus]=React.useState("");
- const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false);\n const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]);
+ const [loaded,setLoaded]=React.useState(false),[testing,setTesting]=React.useState(false),[recording,setRecording]=React.useState(false),[transcribing,setTranscribing]=React.useState(false);
+ const mediaRef=React.useRef<MediaStream|null>(null),audioContextRef=React.useRef<AudioContext|null>(null),processorRef=React.useRef<ScriptProcessorNode|null>(null),chunksRef=React.useRef<Float32Array[]>([]),frameCountRef=React.useRef(0);
  const active=conversations.find(c=>c.id===activeId);
  const messages=active?.messages??[];
  React.useEffect(()=>{
@@ -44,7 +45,7 @@ function App(){
    }).catch(e=>{setError(e.message);setLoaded(true);});
  },[]);
  React.useEffect(()=>{if(loaded)void saveConversations(conversations).catch(e=>setError(e.message));},[conversations,loaded]);
- async function saveKey(){
+ React.useEffect(()=>()=>{mediaRef.current?.getTracks().forEach(t=>t.stop());void audioContextRef.current?.close();},[]);\n async function saveKey(){
    setError("");setTesting(true);
    try{await invoke("settings.configureApiKey");setConfigured(true);setShowSettings(false);}
    catch(e:any){setError(e.message);}
@@ -63,7 +64,9 @@ function App(){
    if(!activeId)setActiveId(chatId);
    try{
      await invoke("api.chat",{model,messages:apiMessages,thinking,search},(chunk,kind)=>{
-       if(kind==="reasoning")setReasoning(v=>v+chunk);\n       else if(kind==="status")setStreamStatus(chunk);\n       else setConversations(current=>current.map(c=>c.id===chatId?{...c,updatedAt:Date.now(),messages:c.messages.map((m,i)=>i===c.messages.length-1?{...m,text:m.text+chunk}:m)}:c));
+       if(kind==="reasoning")setReasoning(v=>v+chunk);
+       else if(kind==="status")setStreamStatus(chunk);
+       else setConversations(current=>current.map(c=>c.id===chatId?{...c,updatedAt:Date.now(),messages:c.messages.map((m,i)=>i===c.messages.length-1?{...m,text:m.text+chunk}:m)}:c));
      },requestId);
    }catch(e:any){setError(e.message);}
    finally{setBusy(false);setActiveRequest(null);setStreamStatus("");}
@@ -75,7 +78,7 @@ function App(){
      const stream=mediaRef.current;stream?.getTracks().forEach(t=>t.stop());mediaRef.current=null;
      const context=audioContextRef.current;audioContextRef.current=null;
      if(!context)return;
-     const sampleRate=context.sampleRate,frames=chunksRef.current.reduce((n,c)=>n+c.length,0);
+     const sampleRate=context.sampleRate,frames=frameCountRef.current;frameCountRef.current=0;
      const pcm=new Int16Array(frames);let offset=0;
      for(const chunk of chunksRef.current){for(let i=0;i<chunk.length;i++){const value=Math.max(-1,Math.min(1,chunk[i]));pcm[offset++]=value<0?value*32768:value*32767;}}
      chunksRef.current=[];
@@ -92,7 +95,15 @@ function App(){
    try{
      const stream=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true}});
      const context=new AudioContext();const source=context.createMediaStreamSource(stream);const processor=context.createScriptProcessor(4096,1,1);
-     chunksRef.current=[];processor.onaudioprocess=e=>{if(recording||mediaRef.current)chunksRef.current.push(new Float32Array(e.inputBuffer.getChannelData(0)));};
+     chunksRef.current=[];frameCountRef.current=0;processor.onaudioprocess=e=>{
+       if(!mediaRef.current)return;
+       const chunk=new Float32Array(e.inputBuffer.getChannelData(0));frameCountRef.current+=chunk.length;
+       if(frameCountRef.current>4_000_000){
+         stream.getTracks().forEach(t=>t.stop());mediaRef.current=null;processor.disconnect();processorRef.current=null;
+         void context.close();audioContextRef.current=null;chunksRef.current=[];setRecording(false);setError("录音时长超过限制（约 80 秒），请分段录入。");return;
+       }
+       chunksRef.current.push(chunk);
+     };
      source.connect(processor);processor.connect(context.destination);
      mediaRef.current=stream;audioContextRef.current=context;processorRef.current=processor;setRecording(true);
    }catch(e:any){setError(e.name==="NotAllowedError"?"麦克风权限被拒绝，请在 Windows 权限设置中允许麦克风。":"无法启动麦克风录音。");}
