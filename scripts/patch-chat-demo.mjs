@@ -548,20 +548,6 @@ export const AccountUsage = () => {
   await write('src/components/usage/Usage.module.css', ".sessionUsage { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:16px; padding:5px 10px 0; color:var(--dsw-alias-label-tertiary); font-size:12px; line-height:18px; user-select:none; }\n.metric { position:relative; display:inline-flex; align-items:center; }\n.metricButton { padding:0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; white-space:nowrap; }\n.metricButton:hover,.metricButton:focus-visible { color:var(--dsw-alias-label-primary); outline:none; }\n.metricPopover { position:absolute; z-index:1200; left:50%; bottom:calc(100% + 9px); transform:translateX(-50%); width:max-content; min-width:218px; max-width:min(280px,calc(100vw - 24px)); box-sizing:border-box; padding:12px 13px; border:1px solid var(--dsw-alias-border-l2); border-radius:12px; background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 6px 24px rgba(0,0,0,.12); font-size:12px; line-height:18px; user-select:text; }\n.metricTitle { display:block; margin-bottom:7px; font-weight:600; }\n.metricDetail { display:flex; justify-content:space-between; gap:18px; padding:3px 0; color:var(--dsw-alias-label-secondary); }\n.metricDetail strong { color:var(--dsw-alias-label-primary); font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }\n.accountUsage { position:relative; display:flex; align-items:center; margin:auto 0; }\n.balanceButton { display:flex; align-items:center; gap:7px; min-height:34px; padding:0 10px; border:1px solid var(--dsw-alias-border-l2); border-radius:18px; color:var(--dsw-alias-label-primary); background:var(--dsw-specific-sidebar-fill); font:inherit; font-size:12px; cursor:pointer; white-space:nowrap; }\n.walletIcon { color:var(--dsw-alias-brand-text); }\n.balancePopover { position:absolute; z-index:1000; left:0; bottom:calc(100% + 8px); width:286px; padding:14px; border:1px solid var(--dsw-alias-border-l2); border-radius:14px; background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 8px 32px rgba(0,0,0,.14); font-size:12px; }\n.popoverHeader,.balanceSplit,.popoverFoot { display:flex; align-items:center; justify-content:space-between; gap:10px; }\n.popoverHeader span { color:var(--dsw-alias-label-tertiary); }\n.balanceAmount { margin:10px 0 12px; font-size:25px; font-weight:650; font-variant-numeric:tabular-nums; }\n.balanceSplit { padding:5px 0; color:var(--dsw-alias-label-secondary); }\n.balanceSplit b { color:var(--dsw-alias-label-primary); font-weight:550; font-variant-numeric:tabular-nums; }\n.popoverDivider { height:1px; margin:9px 0; background:var(--dsw-alias-border-l1); }\n.popoverFoot { margin-top:10px; }\n.popoverFoot small,.estimateNote { color:var(--dsw-alias-label-tertiary); font-size:10px; line-height:1.5; }\n.popoverFoot button { border:0; background:none; color:var(--dsw-alias-brand-text); cursor:pointer; }\n.popoverFoot button:disabled { opacity:.5; cursor:default; }\n.balanceError { color:var(--dsw-alias-state-error-primary); }\n.estimateNote { display:block; margin-top:8px; }\n")
   await write('src/components/usage/Usage.module.css.d.ts', "declare const styles: { readonly \"sessionUsage\": string; readonly \"metric\": string; readonly \"metricButton\": string; readonly \"metricPopover\": string; readonly \"metricTitle\": string; readonly \"metricDetail\": string; readonly \"accountUsage\": string; readonly \"balanceButton\": string; readonly \"walletIcon\": string; readonly \"balancePopover\": string; readonly \"popoverHeader\": string; readonly \"balanceAmount\": string; readonly \"balanceSplit\": string; readonly \"popoverDivider\": string; readonly \"popoverFoot\": string; readonly \"balanceError\": string; readonly \"estimateNote\": string; }\nexport = styles\n")
 }
-{
-  const file = 'src/services/api/types.ts'
-  let s = await read(file)
-  s = replaceOnce(s, "  thinking?: { type: 'enabled' | 'disabled' }\\n  output_config?: { effort: ReasoningEffort }", "  output_config?: { effort: ReasoningEffort }", file)
-  await write(file, s)
-}
-{
-  const file = 'src/services/chat/store.ts'
-  let s = await read(file)
-  s = replaceOnce(s, "            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },", "            output_config: { effort: initial.reasoningEffort ?? (initial.thinking === false ? 'none' : 'high') },", file)
-  await write(file, s)
-}
-
-
 // ---------- Tighten persisted usage record type and API effort precedence ----------
 {
   const file = 'src/services/chat/db.ts'
@@ -579,5 +565,101 @@ export const AccountUsage = () => {
     "type UsageRecord = Omit<Awaited<ReturnType<typeof loadAllUsageMessages>>[number], 'usage'> & { usage: NonNullable<Awaited<ReturnType<typeof loadAllUsageMessages>>[number]['usage']> }", file)
   await write(file, s)
 }
+
+
+// ---------- Restore the original thinking switch; add optional professional model controls ----------
+{
+  const file = 'src/services/api/types.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'",
+    "export type ChatModel = 'deepseek-flash' | 'deepseek-v4-pro'\n\nexport type ReasoningEffort = 'low' | 'high' | 'max'", file)
+  s = replaceOnce(s,
+    "  thinking: { type: 'enabled' | 'disabled' }\n  tools:",
+    "  thinking?: { type: 'enabled' | 'disabled' }\n  output_config?: { effort: ReasoningEffort }\n  tools:", file)
+  await write(file, s)
+}
+{
+  const file = 'src/services/settings.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import type { TtsVoice } from './api/speech.js'",
+    "import type { ChatModel, ReasoningEffort } from './api/types.js'\nimport type { TtsVoice } from './api/speech.js'", file)
+  s = replaceOnce(s,
+    "  thinking: boolean\n  search: boolean",
+    "  thinking: boolean\n  professionalMode: boolean\n  model: ChatModel\n  reasoningEffort: ReasoningEffort\n  search: boolean", file)
+  s = replaceOnce(s,
+    "  thinking: 'chat-demo:thinking',\n  search:",
+    "  thinking: 'chat-demo:thinking',\n  professionalMode: 'deepdesk:professional-mode',\n  model: 'deepdesk:model',\n  reasoningEffort: 'deepdesk:reasoning-effort',\n  search:", file)
+  s = replaceOnce(s,
+    "export const useSettings = create<Settings>(() => ({",
+    "const initialModel = (): ChatModel => read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash'\nconst initialReasoningEffort = (): ReasoningEffort => {\n  const value = read(KEYS.reasoningEffort)\n  return value === 'low' || value === 'max' ? value : 'high'\n}\n\nexport const useSettings = create<Settings>(() => ({", file)
+  s = replaceOnce(s,
+    "  thinking: read(KEYS.thinking) === 'true',\n  search:",
+    "  thinking: read(KEYS.thinking) === 'true',\n  professionalMode: read(KEYS.professionalMode) === 'true',\n  model: initialModel(),\n  reasoningEffort: initialReasoningEffort(),\n  search:", file)
+  s = replaceOnce(s,
+    "export const setSearch = (search: boolean) => {",
+    "export const setProfessionalMode = (professionalMode: boolean) => {\n  write(KEYS.professionalMode, String(professionalMode))\n  useSettings.setState({ professionalMode })\n}\n\nexport const setModel = (model: ChatModel) => {\n  write(KEYS.model, model)\n  useSettings.setState({ model })\n}\n\nexport const setReasoningEffort = (reasoningEffort: ReasoningEffort) => {\n  write(KEYS.reasoningEffort, reasoningEffort)\n  useSettings.setState({ reasoningEffort })\n}\n\nexport const setSearch = (search: boolean) => {", file)
+  await write(file, s)
+}
+{
+  const file = 'src/services/chat/types.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  ChatModel,\n  MessageUsage,",
+    "  ChatModel,\n  ReasoningEffort,\n  MessageUsage,", file)
+  s = replaceOnce(s,
+    "  /** 请求时是否开启深度思考 */\n  thinking?: boolean",
+    "  /** 请求时是否开启深度思考 */\n  thinking?: boolean\n  /** 专业模式下本轮请求使用的推理强度；缺省时沿用原版请求方式。 */\n  reasoningEffort?: ReasoningEffort", file)
+  await write(file, s)
+}
+{
+  const file = 'src/services/chat/store.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  const { thinking, search } = useSettings.getState()\n  return {\n    id: createId(),",
+    "  const { thinking, search, professionalMode, model, reasoningEffort } = useSettings.getState()\n  return {\n    id: createId(),", file)
+  s = replaceOnce(s,
+    "    model: MODEL,\n    thinking,\n    search,",
+    "    model: professionalMode ? model : MODEL,\n    thinking,\n    reasoningEffort: professionalMode ? reasoningEffort : undefined,\n    search,", file)
+  s = replaceOnce(s,
+    "            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },",
+    "            ...(initial.reasoningEffort && initial.thinking\n              ? { output_config: { effort: initial.reasoningEffort } }\n              : { thinking: { type: initial.thinking ? 'enabled' : 'disabled' } }),", file)
+  await write(file, s)
+}
+{
+  const file = 'src/components/chatInput/ChatInput.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import { SessionUsage } from '../usage/SessionUsage.js'",
+    "import { SessionUsage } from '../usage/SessionUsage.js'\nimport { ModelSettings } from './ModelSettings.js'", file)
+  s = replaceOnce(s,
+    "          </Tooltip>\n        </div>\n        <div className={styles.right}>",
+    "          </Tooltip>\n          <ModelSettings />\n        </div>\n        <div className={styles.right}>", file)
+  await write(file, s)
+}
+{
+  const file = 'src/components/chatInput/ModelSettings.tsx'
+  await write(file, "import { useState } from 'react'\nimport { createPortal } from 'react-dom'\nimport clsx from 'clsx'\nimport { useTranslate } from '../../i18n/index.js'\nimport type { ChatModel, ReasoningEffort } from '../../services/api/types.js'\nimport { setModel, setProfessionalMode, setReasoningEffort, useSettings } from '../../services/settings.js'\nimport { IconCheckOutline16, IconChevronDownOutline14 } from '../base/icons.js'\nimport { useAnchoredPosition, useDismiss } from '../base/anchored.js'\nimport styles from './ModelSettings.module.css'\n\nconst models: { value: ChatModel; label: string }[] = [\n  { value: 'deepseek-flash', label: 'DeepSeek-V4.1-Flash' },\n  { value: 'deepseek-v4-pro', label: 'DeepSeek-V4-Pro' },\n]\nconst efforts: { value: ReasoningEffort; label: string }[] = [\n  { value: 'low', label: 'Low' },\n  { value: 'high', label: 'High' },\n  { value: 'max', label: 'Max' },\n]\n\nexport const ModelSettings = () => {\n  const t = useTranslate()\n  const professionalMode = useSettings((state) => state.professionalMode)\n  const model = useSettings((state) => state.model)\n  const effort = useSettings((state) => state.reasoningEffort)\n  const [open, setOpen] = useState(false)\n  const [expanded, setExpanded] = useState<'model' | 'effort' | null>(null)\n  const { anchorRef, floatingRef, position } = useAnchoredPosition<HTMLButtonElement, HTMLDivElement>(\n    open, { side: 'top', align: 'start', offset: 8 }\n  )\n  useDismiss(open, [anchorRef, floatingRef], () => {\n    setOpen(false)\n    setExpanded(null)\n  }, { captureEscape: true })\n\n  const modelName = models.find((item) => item.value === model)?.label ?? models[0].label\n  const effortName = efforts.find((item) => item.value === effort)?.label ?? 'High'\n\n  return <>\n    <button\n      ref={anchorRef}\n      type=\"button\"\n      className={clsx(styles.trigger, professionalMode && styles.active)}\n      aria-haspopup=\"dialog\"\n      aria-expanded={open}\n      aria-pressed={professionalMode}\n      aria-label={t('professionalSettingsTitle')}\n      title={professionalMode ? modelName + ' · ' + effortName : t('professionalSettingsTitle')}\n      onClick={() => { setOpen((value) => !value); setExpanded(null) }}\n    >\n      <span>专业</span>\n      <IconChevronDownOutline14 />\n    </button>\n    {open ? createPortal(\n      <div\n        ref={floatingRef}\n        className={styles.panel}\n        style={position ?? undefined}\n        role=\"dialog\"\n        aria-label={t('professionalSettingsTitle')}\n      >\n        <div className={styles.header}>\n          <strong className={styles.title}>{t('professionalSettingsTitle')}</strong>\n          <button type=\"button\" className={styles.close} aria-label={t('close')}\n            onClick={() => { setOpen(false); setExpanded(null) }}>×</button>\n        </div>\n        <div className={styles.modeRow}>\n          <div className={styles.modeCopy}>\n            <strong>{t('professionalModeEnable')}</strong>\n            <span>{t('professionalModeDescription')}</span>\n          </div>\n          <button\n            type=\"button\"\n            role=\"switch\"\n            aria-checked={professionalMode}\n            className={clsx(styles.switch, professionalMode && styles.switchActive)}\n            onClick={() => { setProfessionalMode(!professionalMode); setExpanded(null) }}\n          >\n            <span className={styles.switchThumb} />\n          </button>\n        </div>\n        <div className={clsx(styles.fields, !professionalMode && styles.disabled)}>\n          <div className={styles.row}>\n            <span className={styles.label}>{t('settingsModelLabel')}</span>\n            <button type=\"button\" className={styles.rowTrigger} disabled={!professionalMode}\n              aria-expanded={expanded === 'model'}\n              onClick={() => setExpanded((value) => value === 'model' ? null : 'model')}>\n              <span>{modelName}</span><IconChevronDownOutline14 />\n            </button>\n          </div>\n          {expanded === 'model' && professionalMode ? (\n            <div className={styles.options} role=\"listbox\" aria-label={t('settingsModelLabel')}>\n              {models.map((item) => (\n                <button key={item.value} type=\"button\" role=\"option\"\n                  aria-selected={item.value === model} className={styles.option}\n                  onClick={() => { setModel(item.value); setExpanded(null) }}>\n                  <span>{item.label}</span>{item.value === model ? <IconCheckOutline16 /> : null}\n                </button>\n              ))}\n            </div>\n          ) : null}\n          <div className={styles.row}>\n            <span className={styles.label}>{t('settingsReasoningEffortLabel')}</span>\n            <button type=\"button\" className={styles.rowTrigger} disabled={!professionalMode}\n              aria-expanded={expanded === 'effort'}\n              onClick={() => setExpanded((value) => value === 'effort' ? null : 'effort')}>\n              <span>{effortName}</span><IconChevronDownOutline14 />\n            </button>\n          </div>\n          {expanded === 'effort' && professionalMode ? (\n            <div className={styles.options} role=\"listbox\" aria-label={t('settingsReasoningEffortLabel')}>\n              {efforts.map((item) => (\n                <button key={item.value} type=\"button\" role=\"option\"\n                  aria-selected={item.value === effort} className={styles.option}\n                  onClick={() => { setReasoningEffort(item.value); setExpanded(null) }}>\n                  <span>{item.label}</span>{item.value === effort ? <IconCheckOutline16 /> : null}\n                </button>\n              ))}\n            </div>\n          ) : null}\n        </div>\n        <p className={styles.hint}>{t('professionalModeThinkingHint')}</p>\n        {professionalMode && model === 'deepseek-v4-pro'\n          ? <p className={styles.hint}>{t('settingsModelProHint')}</p>\n          : null}\n      </div>,\n      document.body\n    ) : null}\n  </>\n}\n")
+  await write('src/components/chatInput/ModelSettings.module.css', ".trigger {\n  display: inline-flex; align-items: center; flex-shrink: 0; gap: 6px;\n  height: 34px; padding: 0 12px; border: 1px solid var(--dsw-alias-border-l2);\n  border-radius: 18px; background: transparent; color: var(--dsw-alias-label-primary);\n  font: inherit; font-size: 13px; line-height: 20px; font-weight: 500;\n  white-space: nowrap; cursor: pointer; transition: background .2s, border-color .2s;\n}\n.trigger:hover { background: var(--dsw-alias-interactive-bg-hover); }\n.active {\n  background: var(--dsw-alias-button-ghost-active-fill);\n  color: var(--dsw-alias-brand-text);\n  border-color: var(--dsw-alias-button-ghost-active-border);\n}\n.panel {\n  position: fixed; z-index: 1100; box-sizing: border-box; width: 318px; padding: 12px;\n  border: 1px solid var(--dsw-alias-border-l2); border-radius: 14px;\n  background: var(--dsw-alias-bg-layer-3); color: var(--dsw-alias-label-primary);\n  box-shadow: 0 8px 28px rgba(0,0,0,.14);\n}\n.header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }\n.title { font-size:14px; font-weight:600; }\n.close { width:26px; height:26px; border:0; border-radius:7px; background:transparent; color:var(--dsw-alias-label-tertiary); font-size:20px; line-height:1; cursor:pointer; }\n.close:hover { background:var(--dsw-alias-interactive-bg-hover); color:var(--dsw-alias-label-primary); }\n.modeRow { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 2px 12px; border-bottom:1px solid var(--dsw-alias-border-l1); }\n.modeCopy { display:flex; flex-direction:column; gap:3px; min-width:0; }\n.modeCopy strong { font-size:13px; font-weight:550; }\n.modeCopy span { color:var(--dsw-alias-label-tertiary); font-size:11px; line-height:1.45; }\n.switch { position:relative; flex-shrink:0; width:36px; height:21px; padding:0; border:0; border-radius:12px; background:var(--dsw-alias-border-l2); cursor:pointer; transition:background .18s; }\n.switchActive { background:var(--dsw-alias-brand-solid); }\n.switchThumb { position:absolute; top:3px; left:3px; width:15px; height:15px; border-radius:50%; background:white; box-shadow:0 1px 2px rgba(0,0,0,.16); transition:transform .18s; }\n.switchActive .switchThumb { transform:translateX(15px); }\n.fields { padding-top:7px; }\n.disabled { opacity:.45; }\n.row { display:flex; align-items:center; justify-content:space-between; gap:8px; min-height:42px; }\n.label { flex-shrink:0; color:var(--dsw-alias-label-secondary); font-size:13px; }\n.rowTrigger {\n  display:flex; align-items:center; justify-content:space-between; gap:8px;\n  width:208px; min-width:0; min-height:36px; padding:0 10px;\n  border:1px solid var(--dsw-alias-border-l1); border-radius:9px;\n  background:var(--dsw-specific-selector); color:var(--dsw-alias-label-primary);\n  font:inherit; font-size:12px; cursor:pointer;\n}\n.rowTrigger span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }\n.rowTrigger:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover); }\n.rowTrigger:disabled { cursor:not-allowed; }\n.options {\n  display:flex; flex-direction:column; gap:2px; margin:2px 0 6px 76px;\n  padding:4px; border-radius:9px; background:var(--dsw-specific-selector);\n}\n.option {\n  display:flex; align-items:center; justify-content:space-between; gap:8px;\n  min-height:33px; padding:4px 8px; border:0; border-radius:7px;\n  background:transparent; color:var(--dsw-alias-label-primary);\n  font:inherit; font-size:12px; text-align:left; cursor:pointer;\n}\n.option:hover,.option[aria-selected=\"true\"] { background:var(--dsw-alias-interactive-bg-hover); }\n.hint { margin:9px 2px 0; color:var(--dsw-alias-label-tertiary); font-size:11px; line-height:1.5; }\n")
+  await write('src/components/chatInput/ModelSettings.module.css.d.ts', "declare const styles: {\n  readonly \"trigger\": string;\n  readonly \"active\": string;\n  readonly \"panel\": string;\n  readonly \"header\": string;\n  readonly \"title\": string;\n  readonly \"close\": string;\n  readonly \"modeRow\": string;\n  readonly \"modeCopy\": string;\n  readonly \"switch\": string;\n  readonly \"switchActive\": string;\n  readonly \"switchThumb\": string;\n  readonly \"fields\": string;\n  readonly \"disabled\": string;\n  readonly \"row\": string;\n  readonly \"label\": string;\n  readonly \"rowTrigger\": string;\n  readonly \"options\": string;\n  readonly \"option\": string;\n  readonly \"hint\": string;\n}\nexport = styles\n")
+}
+{
+  const file = 'src/i18n/zh.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  settingsTtsVoice: '朗读音色',",
+    "  professionalSettingsTitle: '专业设置',\n  professionalModeEnable: '启用专业模式',\n  professionalModeDescription: '开启后可自选模型和推理强度；关闭时沿用普通模式。',\n  professionalModeThinkingHint: '深度思考开关仍负责开启或关闭；推理强度仅在开启时生效。',\n  settingsModelLabel: '模型',\n  settingsReasoningEffortLabel: '推理强度',\n  settingsEffortLow: 'Low（低）',\n  settingsEffortHigh: 'High（标准）',\n  settingsEffortMax: 'Max（最高）',\n  settingsModelProHint: 'DeepSeek-V4-Pro 当前不支持图片输入。',\n  settingsTtsVoice: '朗读音色',", file)
+  await write(file, s)
+}
+{
+  const file = 'src/i18n/en.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  settingsTtsVoice: 'Read-aloud voice',",
+    "  professionalSettingsTitle: 'Professional settings',\n  professionalModeEnable: 'Enable professional mode',\n  professionalModeDescription: 'Choose a model and reasoning effort. Turn it off to return to the default experience.',\n  professionalModeThinkingHint: 'The original Deep Thinking switch still turns thinking on or off. Effort applies only when thinking is on.',\n  settingsModelLabel: 'Model',\n  settingsReasoningEffortLabel: 'Reasoning effort',\n  settingsEffortLow: 'Low',\n  settingsEffortHigh: 'High',\n  settingsEffortMax: 'Max',\n  settingsModelProHint: 'DeepSeek-V4-Pro does not support image input.',\n  settingsTtsVoice: 'Read-aloud voice',", file)
+  await write(file, s)
+}
+
 
 console.log('DeepDesk Chat Demo patches applied.')
