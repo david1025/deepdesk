@@ -23,7 +23,8 @@ Stream event:
 - `settings.clearApiKey`: deletes the protected key.
 - `settings.testApiKey`: verifies the configured key using GET /models.
 - `api.chat`: accepts model, text message history, thinking and search flags; emits content, reasoning, and progress stream events.
-- `speech.transcribe`: accepts a size-limited Base64 WAV recording, calls POST /v1/tools/asr natively, and returns recognized text.\n- `speech.synthesize`: accepts text and an allowlisted voice, calls POST /v1/tools/tts natively, and returns bounded PCM audio for local playback.
+- `speech.transcribe`: accepts a size-limited Base64 WAV recording, calls POST /v1/tools/asr natively, and returns recognized text.
+- `speech.synthesize`: accepts text and an allowlisted voice, calls POST /v1/tools/tts natively, and returns bounded PCM audio for local playback.
 - `api.cancel`: accepts targetRequestId and cancels only that request.
 
 ## Chat payload
@@ -38,5 +39,5 @@ Stream event:
 
 The native host maps this to `POST /anthropic/v1/messages` with the official DeepSeek extension fields (`system`, `thinking`, `tools`, and `safety_check`). Streaming is parsed as Anthropic-compatible SSE events. The renderer cannot pass arbitrary URLs, headers, tools, or filesystem paths.
 
-## Errors
+## External links\n- `app.openExternal`: opens only absolute HTTP/HTTPS URLs through the Windows shell; credentials and non-web URI schemes are rejected.\n\n## Errors
 Errors use stable codes: `INVALID_REQUEST`, `API_KEY_MISSING`, `API_AUTH_FAILED`, `API_RATE_LIMITED`, `API_REQUEST_FAILED`, `API_PROTOCOL_ERROR`, `REQUEST_CANCELLED`.
