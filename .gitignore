@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.rspack-cache/
+.vscode/
+.idea/
+*.user
+*.suo
+*.log
+.env
+.env.*
+!*.env.example
