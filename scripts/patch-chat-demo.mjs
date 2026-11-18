@@ -561,4 +561,23 @@ export const AccountUsage = () => {
   await write(file, s)
 }
 
+
+// ---------- Tighten persisted usage record type and API effort precedence ----------
+{
+  const file = 'src/services/chat/db.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "message is AssistantMessage => message.role === 'assistant' && !!message.usage",
+    "message is AssistantMessage & { usage: NonNullable<AssistantMessage['usage']> } => message.role === 'assistant' && !!message.usage", file)
+  await write(file, s)
+}
+{
+  const file = 'src/components/usage/AccountUsage.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "type UsageRecord = Awaited<ReturnType<typeof loadAllUsageMessages>>[number]",
+    "type UsageRecord = Omit<Awaited<ReturnType<typeof loadAllUsageMessages>>[number], 'usage'> & { usage: NonNullable<Awaited<ReturnType<typeof loadAllUsageMessages>>[number]['usage']> }", file)
+  await write(file, s)
+}
+
 console.log('DeepDesk Chat Demo patches applied.')
