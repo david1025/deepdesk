@@ -116,3 +116,17 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] Help → Check for updates: latest stable release opens; no-update and network-error messages are correct.
 - [ ] Confirm app version displayed in About and bridge status matches the build.
 - [ ] Confirm installer publisher/signature warning is documented until signing is configured.
+
+
+## Stage 4 — First-run UI and release acceptance
+
+- [ ] First-run welcome dialog uses modern custom XAML styling, rounded card, consistent typography and clear primary/secondary actions.
+- [ ] API Key creation link opens the official DeepSeek platform in the default browser.
+- [ ] Empty key shows validation guidance; invalid key displays an error and is not saved.
+- [ ] Valid key is tested and saved with Windows DPAPI.
+- [ ] Enter submits; Skip and close both dismiss the dialog without saving a key.
+- [ ] Main application window remains hidden behind first-run onboarding and appears after dismissal.
+- [ ] Previously configured users do not see onboarding again.
+- [ ] Help → Check for updates works with a stable GitHub release.
+- [ ] Inno Setup installer builds and the output artifact is downloadable.
+- [ ] Upgrade and uninstall preserve chat history, attachments, API Key and WebView2 profile.
