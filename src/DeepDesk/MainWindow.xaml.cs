@@ -348,52 +348,28 @@ public partial class MainWindow : Window
                 args.Cancel = true;
                 OpenExternal(args.Uri);
             };
-            // The upstream 0.1.2 attachment viewer opens image/PDF blob URLs in
-            // a new tab. Route only same-origin, user-initiated blob previews
-            // into a second WebView2 sharing the main environment/profile.
+            // Show same-origin blob images/PDFs in a frameless lightbox inside
+            // the chat UI instead of opening an unrelated native-titlebar window.
             core.NewWindowRequested += async (_, args) =>
             {
-                if (!args.IsUserInitiated ||
-                    !args.Uri.StartsWith("blob:https://deepdesk.local/", StringComparison.OrdinalIgnoreCase))
+                args.Handled = true;
+                if (!args.IsUserInitiated)
+                    return;
+
+                if (args.Uri.StartsWith("blob:https://deepdesk.local/", StringComparison.OrdinalIgnoreCase))
                 {
-                    args.Handled = true;
-                    if (args.IsUserInitiated) OpenExternal(args.Uri);
+                    try
+                    {
+                        await ShowInlineFilePreviewAsync(core, args.Uri);
+                    }
+                    catch (Exception ex)
+                    {
+                        RuntimeLog.Write($"Inline file preview failed: {ex.GetType().Name}");
+                    }
                     return;
                 }
 
-                using var deferral = args.GetDeferral();
-                LocalFilePreviewWindow? preview = null;
-                try
-                {
-                    preview = new LocalFilePreviewWindow(this);
-                    preview.Show();
-                    await preview.Browser.EnsureCoreWebView2Async(environment);
-                    var previewCore = preview.Browser.CoreWebView2;
-                    previewCore.Settings.AreDevToolsEnabled = false;
-                    previewCore.Settings.IsStatusBarEnabled = false;
-                    previewCore.NavigationStarting += (_, nav) =>
-                    {
-                        if (nav.Uri.StartsWith("blob:https://deepdesk.local/", StringComparison.OrdinalIgnoreCase))
-                            return;
-                        nav.Cancel = true;
-                        OpenExternal(nav.Uri);
-                    };
-                    previewCore.NewWindowRequested += (_, nested) =>
-                    {
-                        nested.Handled = true;
-                        if (nested.IsUserInitiated) OpenExternal(nested.Uri);
-                    };
-                    previewCore.DownloadStarting += (_, download) => HandleFileDownload(download);
-                    // Do not navigate previewCore manually: WebView2 performs the
-                    // original blob navigation when the deferral completes.
-                    args.NewWindow = previewCore;
-                }
-                catch (Exception ex)
-                {
-                    args.Handled = true;
-                    RuntimeLog.Write($"Blob preview failed: {ex.GetType().Name}");
-                    preview?.Close();
-                }
+                OpenExternal(args.Uri);
             };
             core.DownloadStarting += (_, args) => HandleFileDownload(args);
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials), isDark =>
@@ -451,6 +427,104 @@ public partial class MainWindow : Window
             _exitRequested = true;
             Close();
         }
+    }
+
+    private static async Task ShowInlineFilePreviewAsync(CoreWebView2 core, string blobUri)
+    {
+        // JSON encoding protects the JavaScript string literal against injection.
+        // Only a user-initiated same-origin blob URL can reach this method.
+        var safeUri = System.Text.Json.JsonSerializer.Serialize(blobUri);
+        var script = $$"""
+            (async () => {
+              const fileUrl = {{safeUri}};
+              const id = 'deepdesk-file-lightbox';
+              document.getElementById(id)?.querySelector('[data-close-preview]')?.click();
+
+              // Only image/PDF data should ever be embedded in the chat page.
+              // This also avoids accidentally displaying mislabeled HTML content.
+              let type = '';
+              try {
+                const response = await fetch(fileUrl);
+                if (!response.ok) return;
+                type = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
+                await response.body?.cancel();
+              } catch {
+                return;
+              }
+              if (type !== 'application/pdf' && !type.startsWith('image/')) return;
+
+              const overlay = document.createElement('div');
+              overlay.id = id;
+              Object.assign(overlay.style, {
+                position: 'fixed', inset: '0', zIndex: '2147483647',
+                background: 'rgba(10, 12, 17, 0.92)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxSizing: 'border-box', padding: '55px 28px 28px'
+              });
+
+              const previousOverflow = document.body.style.overflow;
+              document.body.style.overflow = 'hidden';
+              const close = () => {
+                document.removeEventListener('keydown', onKeyDown, true);
+                overlay.remove();
+                document.body.style.overflow = previousOverflow;
+              };
+              const onKeyDown = event => {
+                if (event.key === 'Escape') {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  close();
+                }
+              };
+
+              const button = document.createElement('button');
+              button.type = 'button';
+              button.dataset.closePreview = '';
+              button.setAttribute('aria-label', '关闭预览');
+              button.title = '关闭预览 (Esc)';
+              button.textContent = '×';
+              Object.assign(button.style, {
+                position: 'absolute', right: '20px', top: '16px',
+                width: '36px', height: '36px', border: '0',
+                borderRadius: '18px', background: 'rgba(255, 255, 255, 0.16)',
+                color: '#fff', fontSize: '26px', lineHeight: '34px',
+                cursor: 'pointer', fontFamily: 'system-ui, sans-serif',
+                display: 'flex', alignItems: 'center', justifyContent: 'center'
+              });
+              button.addEventListener('click', close);
+              overlay.addEventListener('click', e => {
+                if (e.target === overlay) close();
+              });
+              overlay.append(button);
+
+              if (type === 'application/pdf') {
+                const frame = document.createElement('iframe');
+                frame.src = fileUrl;
+                frame.title = 'PDF 预览';
+                frame.setAttribute('sandbox', 'allow-scripts allow-downloads');
+                Object.assign(frame.style, {
+                  border: '0', width: 'min(100%, 1150px)',
+                  height: '100%', background: '#fff', borderRadius: '8px'
+                });
+                overlay.append(frame);
+              } else {
+                const image = document.createElement('img');
+                image.src = fileUrl;
+                image.alt = '附件图片预览';
+                Object.assign(image.style, {
+                  display: 'block', maxWidth: '100%', maxHeight: '100%',
+                  width: 'auto', height: 'auto', objectFit: 'contain',
+                  boxShadow: '0 10px 38px rgba(0, 0, 0, 0.35)'
+                });
+                overlay.append(image);
+              }
+
+              document.addEventListener('keydown', onKeyDown, true);
+              document.body.append(overlay);
+              button.focus();
+            })();
+            """;
+        await core.ExecuteScriptAsync(script);
     }
 
     // Download links generated by the upstream viewer use blob: URLs.
