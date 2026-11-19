@@ -1,12 +1,21 @@
 <Window x:Class="DeepDesk.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf" Title="DeepDesk" Height="820" Width="1280" MinHeight="600" MinWidth="820" WindowStartupLocation="CenterScreen" Background="#F7F8FA">
-  <Grid>
-    <wv2:WebView2 x:Name="Browser" Visibility="Collapsed"/>
-    <Grid x:Name="LoadingPanel" Background="#F7F8FA">
-      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="360">
-        <TextBlock Text="DeepDesk" FontSize="30" FontWeight="SemiBold" Foreground="#202938" HorizontalAlignment="Center"/>
-        <TextBlock Text="正在启动本地 AI 工作空间…" Margin="0,12,0,0" FontSize="14" Foreground="#687386" HorizontalAlignment="Center"/>
-        <ProgressBar IsIndeterminate="True" Height="3" Margin="0,24,0,0"/>
-      </StackPanel>
+  <DockPanel>
+    <Menu DockPanel.Dock="Top" Background="#F7F8FA">
+      <MenuItem Header="帮助">
+        <MenuItem x:Name="UpdateMenuItem" Header="检查更新…" Click="CheckForUpdates_Click"/>
+        <Separator/>
+        <MenuItem Header="关于 DeepDesk" Click="About_Click"/>
+      </MenuItem>
+    </Menu>
+    <Grid>
+      <wv2:WebView2 x:Name="Browser" Visibility="Collapsed"/>
+      <Grid x:Name="LoadingPanel" Background="#F7F8FA">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="360">
+          <TextBlock Text="DeepDesk" FontSize="30" FontWeight="SemiBold" Foreground="#202938" HorizontalAlignment="Center"/>
+          <TextBlock Text="正在启动本地 AI 工作空间…" Margin="0,12,0,0" FontSize="14" Foreground="#687386" HorizontalAlignment="Center"/>
+          <ProgressBar IsIndeterminate="True" Height="3" Margin="0,24,0,0"/>
+        </StackPanel>
+      </Grid>
     </Grid>
-  </Grid>
+  </DockPanel>
 </Window>
