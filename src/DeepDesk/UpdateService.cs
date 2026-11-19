@@ -37,9 +37,11 @@ internal static class UpdateService
             var tag = release.TryGetProperty("tag_name", out var tagValue) ? tagValue.GetString() : null;
             var url = release.TryGetProperty("html_url", out var urlValue) ? urlValue.GetString() : null;
             if (string.IsNullOrWhiteSpace(tag) || !Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-                uri.Host != "github.com" || uri.AbsolutePath != $"/{ "david1025" }/{ "deepdesk" }/releases/tag/{tag}")
+                uri.Host != "github.com" || !uri.AbsolutePath.StartsWith("/david1025/deepdesk/releases/tag/", StringComparison.Ordinal))
                 continue;
-            if (ParseVersion(tag) > current)
+            var candidate = ParseVersion(tag);
+            var currentIsPreview = CurrentVersion.Contains('-', StringComparison.Ordinal);
+            if (candidate > current || (candidate == current && currentIsPreview))
                 return new AvailableUpdate(tag, uri.AbsoluteUri, tag);
         }
         return null;
