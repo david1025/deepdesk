@@ -32,11 +32,17 @@
 - [ ] Verify cancellation, rate limits, insufficient balance, offline and timeout recovery.
 - [ ] Verify upgrade/uninstall data preservation.
 
-## Milestone 3 — Release readiness
+## Milestone 3 — Stage 4 productization (implementation complete; Windows installer QA pending)
 
-- [ ] Signed installer.
-- [ ] Upgrade/uninstall QA.
-- [ ] Auto-update.
+- [x] Per-user Inno Setup installer with stable AppId and no administrator requirement.
+- [x] Modern custom WPF first-run welcome window with API Key validation, skip, and DPAPI storage.
+- [x] Hide the main window until first-run onboarding is dismissed; avoid showing an empty shell behind the welcome dialog.
+- [x] Help → Check for updates queries stable GitHub Releases and opens the release page; installation remains user-controlled.
+- [x] Keep user data under LocalAppData, outside the install directory.
+- [ ] Build and inspect the installer artifact in CI for this UI revision.
+- [ ] Verify clean install, upgrade over existing install, and uninstall data preservation on Windows.
+- [ ] Code-sign installer and executable.
+- [ ] Background download and staged automatic installation (deferred until manual upgrade QA passes).
 - [ ] Automated Windows UI smoke tests.
 
 Compilation is not considered feature parity. Owner-reported checks are clearly distinguished from independently reproduced test evidence.
