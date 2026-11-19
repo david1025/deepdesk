@@ -26,10 +26,11 @@ This corresponds to the v0.1.1 release baseline. citeturn104694search2
 
 CI produces:
 
-- **DeepDesk-win-x64-lite** — smaller, requires .NET 10 Desktop Runtime + WebView2 Runtime.
-- **DeepDesk-win-x64** — self-contained .NET runtime, still requires WebView2 Runtime.
+- **DeepDesk-Setup-x64** — recommended per-user Windows installer. It installs under `%LOCALAPPDATA%\\Programs\\DeepDesk`, creates Start Menu shortcuts, and upgrades the existing installation using a stable AppId.
+- **DeepDesk-win-x64-lite** — portable build; requires .NET 10 Desktop Runtime and WebView2 Runtime.
+- **DeepDesk-win-x64** — portable self-contained .NET build; still requires WebView2 Runtime.
 
-For a slow connection, download **DeepDesk-win-x64-lite** first.
+The installer does not require administrator rights. Chat history, attachments, WebView2 profile, API Key and settings are stored outside the install folder under `%LOCALAPPDATA%\\DeepDesk`; the installer does not delete them on upgrade or uninstall. The first-run welcome window validates an API Key and stores it with Windows DPAPI, or lets the user configure it later. Use Help → Check for updates to open the latest stable GitHub release page. Updates are installed by running the downloaded installer after closing DeepDesk. Preview builds are not code-signed yet.
 
 ## Development
 
