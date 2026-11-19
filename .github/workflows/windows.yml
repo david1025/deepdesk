@@ -90,14 +90,14 @@ jobs:
         shell: pwsh
         run: |
           choco install innosetup --yes --no-progress
-          if (-not (Test-Path "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe")) {
+          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) {
             throw "Inno Setup compiler was not installed."
           }
 
       - name: Compile Windows installer
         shell: pwsh
         run: |
-          & "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe" installer/DeepDesk.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/DeepDesk.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows installer
