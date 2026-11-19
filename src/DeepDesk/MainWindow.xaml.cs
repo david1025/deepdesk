@@ -1,10 +1,9 @@
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
-using System.Text.Json;
-using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Runtime.InteropServices;
 
 namespace DeepDesk;
 
@@ -13,6 +12,13 @@ public partial class MainWindow : Window
     private const int WmSettingChange = 0x001A;
     private const int WmSysColorChange = 0x0015;
     private const int WmThemeChanged = 0x031A;
+    private const int DwmwaWindowCornerPreference = 33;
+    private const int DwmcpDoNotRound = 1;
+    private const int DwmcpRound = 2;
+
+    [DllImport("dwmapi.dll", PreserveSig = true)]
+    private static extern int DwmSetWindowAttribute(
+        IntPtr hwnd, int attribute, ref int value, int valueSize);
 
     private readonly CredentialService _credentials = new();
     private WebViewBridge? _bridge;
@@ -31,6 +37,7 @@ public partial class MainWindow : Window
         _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
         _windowSource?.AddHook(WindowMessageHook);
         ApplyWindowsTheme();
+        ApplyNativeWindowCorners();
     }
 
     protected override void OnClosed(EventArgs e)
@@ -112,8 +119,52 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
-        MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
-        MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "还原" : "最大化";
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeGlyph.Text = maximized ? "\uE923" : "\uE922";
+        MaximizeButton.ToolTip = maximized ? "还原" : "最大化";
+        UpdateWindowSurfaceClip();
+        ApplyNativeWindowCorners();
+    }
+
+    private void WindowSurface_SizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        UpdateWindowSurfaceClip();
+    }
+
+    private void UpdateWindowSurfaceClip()
+    {
+        if (WindowSurface is null || WindowSurface.ActualWidth <= 0 || WindowSurface.ActualHeight <= 0)
+            return;
+
+        var maximized = WindowState == WindowState.Maximized;
+        var radius = maximized ? 0d : 10d;
+        WindowSurface.CornerRadius = new CornerRadius(radius);
+        WindowSurface.BorderThickness = maximized ? new Thickness(0) : new Thickness(1);
+        TitleBarSurface.CornerRadius = new CornerRadius(radius, radius, 0, 0);
+        WindowSurface.Clip = new RectangleGeometry(
+            new Rect(0, 0, WindowSurface.ActualWidth, WindowSurface.ActualHeight), radius, radius);
+    }
+
+    private void ApplyNativeWindowCorners()
+    {
+        if (_windowSource is null)
+            return;
+
+        var preference = WindowState == WindowState.Maximized ? DwmcpDoNotRound : DwmcpRound;
+        try
+        {
+            _ = DwmSetWindowAttribute(
+                _windowSource.Handle, DwmwaWindowCornerPreference,
+                ref preference, sizeof(int));
+        }
+        catch (DllNotFoundException)
+        {
+            // Older Windows versions use the WPF rounded clip geometry.
+        }
+        catch (EntryPointNotFoundException)
+        {
+            // Older Windows versions do not expose this DWM attribute.
+        }
     }
 
     private void Minimize_Click(object sender, RoutedEventArgs e)
@@ -252,8 +303,8 @@ public partial class MainWindow : Window
 
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
-        CheckForUpdatesMenuItem.IsEnabled = false;
-        CheckForUpdatesMenuItem.Header = "检查中…";
+        CheckForUpdatesButton.IsEnabled = false;
+        CheckForUpdatesButton.Content = "检查中…";
         try
         {
             var update = await UpdateService.CheckAsync();
@@ -277,51 +328,8 @@ public partial class MainWindow : Window
         }
         finally
         {
-            CheckForUpdatesMenuItem.IsEnabled = true;
-            CheckForUpdatesMenuItem.Header = "检查更新";
-        }
-    }
-
-    private async void EditCommand_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is not MenuItem { Tag: string command } || Browser.CoreWebView2 is null)
-            return;
-
-        try
-        {
-            string? script;
-            if (command == "paste")
-            {
-                if (!Clipboard.ContainsText())
-                    return;
-
-                var text = JsonSerializer.Serialize(Clipboard.GetText());
-                script = @"(() => {
-                  const value = " + text + @";
-                  const element = document.activeElement;
-                  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
-                    const start = element.selectionStart ?? element.value.length;
-                    const end = element.selectionEnd ?? start;
-                    element.setRangeText(value, start, end, ""end"");
-                    element.dispatchEvent(new InputEvent(""input"", {
-                      bubbles: true, inputType: ""insertText"", data: value
-                    }));
-                  } else if (element?.isContentEditable) {
-                    document.execCommand(""insertText"", false, value);
-                  }
-                })();";
-            }
-            else
-            {
-                var browserCommand = command == "selectAll" ? "selectAll" : command;
-                script = $"document.execCommand({JsonSerializer.Serialize(browserCommand)});";
-            }
-
-            await Browser.ExecuteScriptAsync(script);
-        }
-        catch (Exception ex)
-        {
-            RuntimeLog.Write($"Edit menu command failed: {command} ({ex.GetType().Name})");
+            CheckForUpdatesButton.IsEnabled = true;
+            CheckForUpdatesButton.Content = "检查更新";
         }
     }
 

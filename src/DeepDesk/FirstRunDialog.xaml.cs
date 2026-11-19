@@ -156,7 +156,7 @@ public partial class FirstRunDialog : Window
         HistoryFileNameText.Text = info.Name;
         HistoryFileMetaText.Text = $"{FormatFileSize(info.Length)} · ZIP 历史数据文件";
         HistoryStatusText.Foreground = new SolidColorBrush(Color.FromRgb(102, 112, 133));
-        HistoryStatusText.Text = "文件已选择。点击「开始导入」后，将以安全合并方式写入本地历史。";
+        HistoryStatusText.Text = "文件已选择。点击「开始导入」后，将历史对话导入到本机。";
         HistoryProgressBar.Visibility = Visibility.Collapsed;
         HistoryProgressBar.IsIndeterminate = false;
         HistoryProgressBar.Value = 0;
@@ -269,7 +269,7 @@ public partial class FirstRunDialog : Window
                 HistoryProgressBar.Visibility = Visibility.Collapsed;
                 HistoryProgressBar.IsIndeterminate = false;
                 HistoryStatusText.Foreground = new SolidColorBrush(Color.FromRgb(39, 117, 72));
-                HistoryStatusText.Text = $"导入完成：新增 {result.Imported} 个会话，跳过 {result.Skipped} 个重复会话。";
+                HistoryStatusText.Text = $"导入完成：新增 {result.Imported} 个会话，跳过 {result.Skipped} 个已存在的会话。";
                 FinishButton.IsEnabled = true;
                 ImportHistoryButton.Content = "再次导入";
             }

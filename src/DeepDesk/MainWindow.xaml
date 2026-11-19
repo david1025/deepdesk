@@ -14,14 +14,34 @@
   </shell:WindowChrome.WindowChrome>
 
   <Window.Resources>
-    <Style x:Key="TopMenuItemStyle" TargetType="{x:Type MenuItem}">
+    <Style x:Key="TitleBarActionButton" TargetType="{x:Type Button}">
       <Setter Property="Foreground" Value="{DynamicResource TitleBarForegroundBrush}"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Padding" Value="9,5"/>
       <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="Normal"/>
+      <Setter Property="Height" Value="32"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="shell:WindowChrome.IsHitTestVisibleInChrome" Value="True"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="{x:Type Button}">
+            <Border x:Name="Surface" Background="{TemplateBinding Background}" CornerRadius="5"
+                    Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource TitleBarHoverBrush}"/>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Surface" Property="Background" Value="{DynamicResource TitleBarHoverBrush}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
     </Style>
 
     <Style x:Key="WindowControlButton" TargetType="{x:Type Button}">
@@ -69,14 +89,15 @@
   </Window.Resources>
 
   <Border x:Name="WindowSurface" BorderThickness="1" BorderBrush="{DynamicResource WindowBorderBrush}"
-          Background="{DynamicResource WindowBackgroundBrush}">
+          CornerRadius="10" ClipToBounds="True"
+          Background="{DynamicResource WindowBackgroundBrush}" SizeChanged="WindowSurface_SizeChanged">
     <Grid>
       <Grid.RowDefinitions>
         <RowDefinition Height="40"/>
         <RowDefinition Height="*"/>
       </Grid.RowDefinitions>
 
-      <Border x:Name="TitleBarSurface" Grid.Row="0"
+      <Border x:Name="TitleBarSurface" Grid.Row="0" CornerRadius="9,9,0,0"
               Background="{DynamicResource TitleBarBackgroundBrush}"
               BorderBrush="{DynamicResource TitleBarBorderBrush}" BorderThickness="0,0,0,1">
         <Grid Margin="12,0,0,0">
@@ -95,33 +116,26 @@
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
 
-          <Menu Grid.Column="1" VerticalAlignment="Center" Background="Transparent"
-                Foreground="{DynamicResource TitleBarForegroundBrush}" FontSize="12"
-                shell:WindowChrome.IsHitTestVisibleInChrome="True">
-            <MenuItem Header="应用" Style="{StaticResource TopMenuItemStyle}">
-              <MenuItem x:Name="CheckForUpdatesMenuItem" Header="检查更新" Click="CheckForUpdates_Click"/>
-              <MenuItem Header="关于 DeepDesk" Click="About_Click"/>
-              <Separator/>
-              <MenuItem Header="退出" Click="CloseWindow_Click"/>
-            </MenuItem>
-            <MenuItem Header="编辑" Style="{StaticResource TopMenuItemStyle}">
-              <MenuItem Header="撤销" Tag="undo" InputGestureText="Ctrl+Z" Click="EditCommand_Click"/>
-              <MenuItem Header="重做" Tag="redo" InputGestureText="Ctrl+Y" Click="EditCommand_Click"/>
-              <Separator/>
-              <MenuItem Header="剪切" Tag="cut" InputGestureText="Ctrl+X" Click="EditCommand_Click"/>
-              <MenuItem Header="复制" Tag="copy" InputGestureText="Ctrl+C" Click="EditCommand_Click"/>
-              <MenuItem Header="粘贴" Tag="paste" InputGestureText="Ctrl+V" Click="EditCommand_Click"/>
-              <MenuItem Header="全选" Tag="selectAll" InputGestureText="Ctrl+A" Click="EditCommand_Click"/>
-            </MenuItem>
-          </Menu>
+          <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+            <Button x:Name="AboutButton" Content="关于" Style="{StaticResource TitleBarActionButton}"
+                    Click="About_Click"/>
+            <Button x:Name="CheckForUpdatesButton" Content="检查更新"
+                    Style="{StaticResource TitleBarActionButton}" Click="CheckForUpdates_Click"/>
+          </StackPanel>
 
           <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center">
-            <Button x:Name="MinimizeButton" Content="—" Style="{StaticResource WindowControlButton}"
-                    Click="Minimize_Click" ToolTip="最小化"/>
-            <Button x:Name="MaximizeButton" Content="□" Style="{StaticResource WindowControlButton}"
-                    Click="MaximizeRestore_Click" ToolTip="最大化"/>
-            <Button x:Name="CloseWindowButton" Content="×" Style="{StaticResource CloseWindowControlButton}"
-                    Click="CloseWindow_Click" ToolTip="关闭"/>
+            <Button x:Name="MinimizeButton" Style="{StaticResource WindowControlButton}"
+                    Click="Minimize_Click" ToolTip="最小化">
+              <TextBlock x:Name="MinimizeGlyph" Text="&#xE921;" FontFamily="Segoe MDL2 Assets" FontSize="10"/>
+            </Button>
+            <Button x:Name="MaximizeButton" Style="{StaticResource WindowControlButton}"
+                    Click="MaximizeRestore_Click" ToolTip="最大化">
+              <TextBlock x:Name="MaximizeGlyph" Text="&#xE922;" FontFamily="Segoe MDL2 Assets" FontSize="10"/>
+            </Button>
+            <Button x:Name="CloseWindowButton" Style="{StaticResource CloseWindowControlButton}"
+                    Click="CloseWindow_Click" ToolTip="关闭">
+              <TextBlock Text="&#xE8BB;" FontFamily="Segoe MDL2 Assets" FontSize="10"/>
+            </Button>
           </StackPanel>
         </Grid>
       </Border>

@@ -6,7 +6,8 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner" FontFamily="Segoe UI"
-        UseLayoutRounding="True" SnapsToDevicePixels="True">
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
   <Window.Resources>
     <SolidColorBrush x:Key="Ink" Color="#172033"/>
     <SolidColorBrush x:Key="Muted" Color="#667085"/>
@@ -19,7 +20,7 @@
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Padding" Value="14,8"/>
       <Setter Property="FontSize" Value="12"/>
-      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="FontWeight" Value="Normal"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -83,12 +84,12 @@
     </Style>
 
     <Style x:Key="CloseButton" TargetType="{x:Type Button}">
-      <Setter Property="Width" Value="36"/>
-      <Setter Property="Height" Value="36"/>
+      <Setter Property="Width" Value="30"/>
+      <Setter Property="Height" Value="30"/>
       <Setter Property="Foreground" Value="#667085"/>
       <Setter Property="Background" Value="Transparent"/>
       <Setter Property="BorderThickness" Value="0"/>
-      <Setter Property="FontSize" Value="22"/>
+      <Setter Property="FontSize" Value="18"/>
       <Setter Property="Cursor" Value="Hand"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -112,17 +113,17 @@
       </Border.Effect>
       <Grid>
         <Grid.RowDefinitions>
-          <RowDefinition Height="60"/>
+          <RowDefinition Height="48"/>
           <RowDefinition Height="*"/>
-          <RowDefinition Height="64"/>
+          <RowDefinition Height="56"/>
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0" BorderBrush="#EEF0F4" BorderThickness="0,0,0,1"
                 CornerRadius="14,14,0,0" MouseLeftButtonDown="Header_MouseLeftButtonDown">
-          <Grid Margin="22,0">
+          <Grid Margin="18,0">
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-              <Border Width="30" Height="30" CornerRadius="8" Background="#EEF3FF">
-                <TextBlock Text="D" FontSize="17" FontWeight="Bold" Foreground="#315EFB"
+              <Border Width="26" Height="26" CornerRadius="7" Background="#EEF3FF">
+                <TextBlock Text="D" FontSize="15" FontWeight="Bold" Foreground="#315EFB"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
               </Border>
               <StackPanel Margin="9,0,0,0" VerticalAlignment="Center">
@@ -267,14 +268,6 @@
                 </StackPanel>
               </Border>
 
-              <Border Background="#EFF6FF" BorderBrush="#DBEAFE" BorderThickness="1"
-                      CornerRadius="9" Padding="11" Margin="0,10,0,0">
-                <StackPanel>
-                  <TextBlock Text="安全合并导入（推荐）" FontSize="12" FontWeight="SemiBold" Foreground="#1D4ED8"/>
-                  <TextBlock Text="导入时会保留本机已有的聊天记录，只添加尚不存在的会话；重复会话自动跳过，不会覆盖现有内容。"
-                             FontSize="10" Foreground="#475569" TextWrapping="Wrap" Margin="0,4,0,0"/>
-                </StackPanel>
-              </Border>
 
               <TextBlock Text="还没有导出的 ZIP？可以先跳过，之后仍可在设置 → 数据管理中导入。"
                          FontSize="10" Foreground="#98A2B3" Margin="2,10,0,0" TextWrapping="Wrap"/>
