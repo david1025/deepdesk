@@ -1,5 +1,7 @@
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
+using System.Text.Json;
+using System.Windows.Controls;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -106,7 +108,6 @@ public partial class MainWindow : Window
         TitleBarSurface.BorderBrush = (Brush)Resources["TitleBarBorderBrush"];
         TitleBarIconBorder.Background = (Brush)Resources["TitleBarIconBackgroundBrush"];
         TitleBarIconText.Foreground = (Brush)Resources["TitleBarIconForegroundBrush"];
-        AppTitleText.Foreground = (Brush)Resources["TitleBarForegroundBrush"];
     }
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
@@ -251,8 +252,8 @@ public partial class MainWindow : Window
 
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
-        CheckForUpdatesButton.IsEnabled = false;
-        CheckForUpdatesButton.Content = "检查中…";
+        CheckForUpdatesMenuItem.IsEnabled = false;
+        CheckForUpdatesMenuItem.Header = "检查中…";
         try
         {
             var update = await UpdateService.CheckAsync();
@@ -276,8 +277,53 @@ public partial class MainWindow : Window
         }
         finally
         {
-            CheckForUpdatesButton.IsEnabled = true;
-            CheckForUpdatesButton.Content = "检查更新";
+            CheckForUpdatesMenuItem.IsEnabled = true;
+            CheckForUpdatesMenuItem.Header = "检查更新";
+        }
+    }
+
+    private async void EditCommand_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string command } || Browser.CoreWebView2 is null)
+            return;
+
+        try
+        {
+            string? script;
+            if (command == "paste")
+            {
+                if (!Clipboard.ContainsText())
+                    return;
+
+                var text = JsonSerializer.Serialize(Clipboard.GetText());
+                script = $"""
+                    (() => {{
+                      const value = {text};
+                      const element = document.activeElement;
+                      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {{
+                        const start = element.selectionStart ?? element.value.length;
+                        const end = element.selectionEnd ?? start;
+                        element.setRangeText(value, start, end, "end");
+                        element.dispatchEvent(new InputEvent("input", {{
+                          bubbles: true, inputType: "insertText", data: value
+                        }}));
+                      }} else if (element?.isContentEditable) {{
+                        document.execCommand("insertText", false, value);
+                      }}
+                    }})();
+                    """;
+            }
+            else
+            {
+                var browserCommand = command == "selectAll" ? "selectAll" : command;
+                script = $"document.execCommand({JsonSerializer.Serialize(browserCommand)});";
+            }
+
+            await Browser.ExecuteScriptAsync(script);
+        }
+        catch (Exception ex)
+        {
+            RuntimeLog.Write($"Edit menu command failed: {command} ({ex.GetType().Name})");
         }
     }
 
