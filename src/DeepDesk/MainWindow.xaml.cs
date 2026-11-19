@@ -22,7 +22,21 @@ public partial class MainWindow : Window
             if (!Directory.Exists(AppPaths.UiDirectory))
                 throw new DirectoryNotFoundException("未找到前端资源，请重新安装应用。");
             Directory.CreateDirectory(AppPaths.WebViewDirectory);
-            var environment = await CoreWebView2Environment.CreateAsync(null, AppPaths.WebViewDirectory);
+            CoreWebView2Environment environment;
+            try
+            {
+                environment = await CoreWebView2Environment.CreateAsync(null, AppPaths.WebViewDirectory);
+            }
+            catch (WebView2RuntimeNotFoundException)
+            {
+                var choice = MessageBox.Show(this,
+                    "当前电脑尚未安装 Microsoft Edge WebView2 Runtime。DeepDesk 需要该组件才能运行。是否打开微软官方下载页面？",
+                    "需要安装 WebView2 Runtime", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (choice == MessageBoxResult.Yes)
+                    OpenExternal("https://developer.microsoft.com/microsoft-edge/webview2/");
+                Close();
+                return;
+            }
             await Browser.EnsureCoreWebView2Async(environment);
             var core = Browser.CoreWebView2;
             core.PermissionRequested += (_, args) =>
