@@ -6,8 +6,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>0.2.0-preview.2</Version>
-    <InformationalVersion>0.2.0-preview.2</InformationalVersion>
+    <Version>0.2.0-preview.3</Version>
+    <InformationalVersion>0.2.0-preview.3</InformationalVersion>
     <AssemblyName>DeepDesk</AssemblyName>
     <RootNamespace>DeepDesk</RootNamespace>
   </PropertyGroup>

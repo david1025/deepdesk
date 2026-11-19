@@ -130,3 +130,17 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] Help → Check for updates works with a stable GitHub release.
 - [ ] Inno Setup installer builds and the output artifact is downloadable.
 - [ ] Upgrade and uninstall preserve chat history, attachments, API Key and WebView2 profile.
+
+
+## Stage 4 — onboarding and Windows title bar
+
+- [ ] New onboarding appears once per profile even if an API Key already exists (v2 onboarding marker).
+- [ ] Step 1 API Key is optional: continue with an empty key proceeds without validation; valid key is validated and saved; invalid key stays on step 1 and is not saved.
+- [ ] Existing DPAPI API Key is detected and does not require re-entry.
+- [ ] Step 2 explains how to export a DeepSeek ZIP and import it through Settings → Data Management.
+- [ ] Back/finish/close controls work; closing or finishing records onboarding completion.
+- [ ] Dialog is centered over the visible main window at common Windows scaling settings; no content is clipped.
+- [ ] Main window has no separate Help menu row; Check for updates and About are visible in the title bar.
+- [ ] Minimize, maximize/restore, close, drag, and window resize work with the custom title bar.
+- [ ] Title bar colors switch with Windows light/dark app theme, including after a live theme change.
+- [ ] WebView2 content remains usable after the custom title bar is applied.

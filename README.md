@@ -30,7 +30,7 @@ CI produces:
 - **DeepDesk-win-x64-lite** — portable build; requires .NET 10 Desktop Runtime and WebView2 Runtime.
 - **DeepDesk-win-x64** — portable self-contained .NET build; still requires WebView2 Runtime.
 
-The installer does not require administrator rights. Chat history, attachments, WebView2 profile, API Key and settings are stored outside the install folder under `%LOCALAPPDATA%\\DeepDesk`; the installer does not delete them on upgrade or uninstall. The first-run welcome window validates an API Key and stores it with Windows DPAPI, or lets the user configure it later. Use Help → Check for updates to open the latest stable GitHub release page. Updates are installed by running the downloaded installer after closing DeepDesk. Preview builds are not code-signed yet.
+The installer does not require administrator rights. Chat history, attachments, WebView2 profile, API Key and settings are stored outside the install folder under `%LOCALAPPDATA%\\DeepDesk`; the installer does not delete them on upgrade or uninstall. The first-run wizard has two optional steps: configure an API Key (validated and stored with Windows DPAPI) and learn how to import a DeepSeek ZIP history export. Both can be skipped; API Key setup and history import remain available later. Use Help → Check for updates to open the latest stable GitHub release page. Updates are installed by running the downloaded installer after closing DeepDesk. Preview builds are not code-signed yet.
 
 ## Development
 

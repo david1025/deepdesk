@@ -1,18 +1,133 @@
-using System.Windows;
+using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
+using System.Windows;
+using System.Windows.Interop;
+using System.Windows.Media;
 
 namespace DeepDesk;
 
 public partial class MainWindow : Window
 {
+    private const int WmSettingChange = 0x001A;
+    private const int WmSysColorChange = 0x0015;
+    private const int WmThemeChanged = 0x031A;
+
     private readonly CredentialService _credentials = new();
     private WebViewBridge? _bridge;
+    private HwndSource? _windowSource;
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += OnLoaded;
         Closed += (_, _) => _bridge = null;
+    }
+
+    protected override void OnSourceInitialized(EventArgs e)
+    {
+        base.OnSourceInitialized(e);
+        _windowSource = HwndSource.FromHwnd(new WindowInteropHelper(this).Handle);
+        _windowSource?.AddHook(WindowMessageHook);
+        ApplyWindowsTheme();
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        if (_windowSource is not null)
+            _windowSource.RemoveHook(WindowMessageHook);
+        base.OnClosed(e);
+    }
+
+    private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)
+    {
+        if (message is WmSettingChange or WmSysColorChange or WmThemeChanged)
+            Dispatcher.BeginInvoke(new Action(ApplyWindowsTheme));
+        return IntPtr.Zero;
+    }
+
+    private static bool IsWindowsLightTheme()
+    {
+        try
+        {
+            var value = Registry.GetValue(
+                @"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize",
+                "AppsUseLightTheme", 1);
+            return Convert.ToInt32(value) != 0;
+        }
+        catch
+        {
+            return true;
+        }
+    }
+
+    private void ApplyWindowsTheme()
+    {
+        var light = IsWindowsLightTheme();
+        var palette = light
+            ? new Dictionary<string, string>
+            {
+                ["WindowBackgroundBrush"] = "#FFFFFF",
+                ["WindowBorderBrush"] = "#DDE2EA",
+                ["TitleBarBackgroundBrush"] = "#FFFFFF",
+                ["TitleBarBorderBrush"] = "#E8EBF1",
+                ["TitleBarForegroundBrush"] = "#202938",
+                ["TitleBarMutedBrush"] = "#667085",
+                ["TitleBarHoverBrush"] = "#F2F4F7",
+                ["CloseHoverBrush"] = "#E81123",
+                ["TitleBarIconBackgroundBrush"] = "#EEF3FF",
+                ["TitleBarIconForegroundBrush"] = "#315EFB"
+            }
+            : new Dictionary<string, string>
+            {
+                ["WindowBackgroundBrush"] = "#17191F",
+                ["WindowBorderBrush"] = "#303641",
+                ["TitleBarBackgroundBrush"] = "#1D2028",
+                ["TitleBarBorderBrush"] = "#303641",
+                ["TitleBarForegroundBrush"] = "#F2F4F7",
+                ["TitleBarMutedBrush"] = "#A0A8B5",
+                ["TitleBarHoverBrush"] = "#303641",
+                ["CloseHoverBrush"] = "#C42B1C",
+                ["TitleBarIconBackgroundBrush"] = "#293653",
+                ["TitleBarIconForegroundBrush"] = "#9DB4FF"
+            };
+
+        foreach (var item in palette)
+        {
+            var color = (Color)ColorConverter.ConvertFromString(item.Value);
+            var brush = new SolidColorBrush(color);
+            brush.Freeze();
+            Resources[item.Key] = brush;
+        }
+
+        Background = (Brush)Resources["WindowBackgroundBrush"];
+        WindowSurface.Background = (Brush)Resources["WindowBackgroundBrush"];
+        WindowSurface.BorderBrush = (Brush)Resources["WindowBorderBrush"];
+        TitleBarSurface.Background = (Brush)Resources["TitleBarBackgroundBrush"];
+        TitleBarSurface.BorderBrush = (Brush)Resources["TitleBarBorderBrush"];
+        TitleBarIconBorder.Background = (Brush)Resources["TitleBarIconBackgroundBrush"];
+        TitleBarIconText.Foreground = (Brush)Resources["TitleBarIconForegroundBrush"];
+        AppTitleText.Foreground = (Brush)Resources["TitleBarForegroundBrush"];
+    }
+
+    private void OnWindowStateChanged(object? sender, EventArgs e)
+    {
+        MaximizeButton.Content = WindowState == WindowState.Maximized ? "❐" : "□";
+        MaximizeButton.ToolTip = WindowState == WindowState.Maximized ? "还原" : "最大化";
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void MaximizeRestore_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void CloseWindow_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -78,15 +193,6 @@ public partial class MainWindow : Window
             core.NewWindowRequested += (_, args) => { args.Handled = true; OpenExternal(args.Uri); };
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
 
-            if (!_credentials.Exists && !AppPaths.FirstRunCompleted)
-            {
-                Hide();
-                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials));
-                welcome.ShowDialog();
-                AppPaths.MarkFirstRunCompleted();
-                Show();
-            }
-
             var nativeCredentialBootstrap = _credentials.Exists
                 ? "localStorage.setItem('chat-demo:api-key','DEEPDESK_NATIVE_CREDENTIAL');"
                 : """
@@ -110,6 +216,16 @@ public partial class MainWindow : Window
             Browser.Source = new Uri("https://deepdesk.local/index.html");
             Browser.Visibility = Visibility.Visible;
             LoadingPanel.Visibility = Visibility.Collapsed;
+
+            if (!AppPaths.FirstRunCompleted)
+            {
+                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials))
+                {
+                    Owner = this
+                };
+                welcome.ShowDialog();
+                AppPaths.MarkFirstRunCompleted();
+            }
         }
         catch (Exception ex)
         {
@@ -121,8 +237,8 @@ public partial class MainWindow : Window
 
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
-        UpdateMenuItem.IsEnabled = false;
-        UpdateMenuItem.Header = "正在检查更新…";
+        CheckForUpdatesButton.IsEnabled = false;
+        CheckForUpdatesButton.Content = "检查中…";
         try
         {
             var update = await UpdateService.CheckAsync();
@@ -146,8 +262,8 @@ public partial class MainWindow : Window
         }
         finally
         {
-            UpdateMenuItem.IsEnabled = true;
-            UpdateMenuItem.Header = "检查更新…";
+            CheckForUpdatesButton.IsEnabled = true;
+            CheckForUpdatesButton.Content = "检查更新";
         }
     }
 

@@ -7,7 +7,7 @@ internal static class AppPaths
     public static string CredentialsDirectory => Path.Combine(Root, "credentials");
     public static string ApiKeyFile => Path.Combine(CredentialsDirectory, "deepseek-api-key.bin");
     public static string SettingsDirectory => Path.Combine(Root, "settings");
-    public static string FirstRunMarker => Path.Combine(SettingsDirectory, "first-run-completed");
+    public static string FirstRunMarker => Path.Combine(SettingsDirectory, "onboarding-v2-completed");
     public static bool FirstRunCompleted => File.Exists(FirstRunMarker);
     public static void MarkFirstRunCompleted()
     {

@@ -1,6 +1,6 @@
 #define MyAppName "DeepDesk"
 #define MyAppVersion "0.2.0"
-#define MyAppDisplayVersion "0.2.0 Preview 2"
+#define MyAppDisplayVersion "0.2.0 Preview 3"
 #define MyAppPublisher "DeepDesk Contributors"
 #define MyAppExeName "DeepDesk.exe"
 
@@ -17,7 +17,7 @@ DefaultDirName={localappdata}\Programs\DeepDesk
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\installer
-OutputBaseFilename=DeepDesk-Setup-0.2.0-preview.2-x64
+OutputBaseFilename=DeepDesk-Setup-0.2.0-preview.3-x64
 ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
 Compression=lzma2
