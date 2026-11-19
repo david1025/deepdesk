@@ -119,9 +119,6 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
-        var maximized = WindowState == WindowState.Maximized;
-        MaximizeGlyph.Text = maximized ? "\uE923" : "\uE922";
-        MaximizeButton.ToolTip = maximized ? "还原" : "最大化";
         UpdateWindowSurfaceClip();
         ApplyNativeWindowCorners();
     }
@@ -167,20 +164,6 @@ public partial class MainWindow : Window
         }
     }
 
-    private void Minimize_Click(object sender, RoutedEventArgs e)
-    {
-        WindowState = WindowState.Minimized;
-    }
-
-    private void MaximizeRestore_Click(object sender, RoutedEventArgs e)
-    {
-        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-    }
-
-    private void CloseWindow_Click(object sender, RoutedEventArgs e)
-    {
-        Close();
-    }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
