@@ -303,6 +303,8 @@ public partial class MainWindow : Window
                     "需要安装 WebView2 Runtime", MessageBoxButton.YesNo, MessageBoxImage.Information);
                 if (choice == MessageBoxResult.Yes)
                     OpenExternal("https://developer.microsoft.com/microsoft-edge/webview2/");
+                // Runtime is unavailable: this is a real startup failure, not a tray close.
+                _exitRequested = true;
                 Close();
                 return;
             }
@@ -396,6 +398,8 @@ public partial class MainWindow : Window
         {
             RuntimeLog.Write($"Startup failed: {ex.GetType().Name}: {ex.Message}");
             MessageBox.Show($"DeepDesk 启动失败：{ex.Message}", "DeepDesk", MessageBoxButton.OK, MessageBoxImage.Error);
+            // Do not strand a nonfunctional process in the tray.
+            _exitRequested = true;
             Close();
         }
     }
