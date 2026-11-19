@@ -26,12 +26,8 @@ public partial class MainWindow : Window
     private HwndSource? _windowSource;
     // Null before the page reports its effective light/dark appearance.
     private bool? _webUiLightTheme;
-    private Window? _firstRunBackdrop;
-    private FirstRunDialog? _firstRunDialog;
-    private bool _isClosing;
     private bool _exitRequested;
     private bool _startupStarted;
-    private bool _guideWasVisibleBeforeTray;
     private TrayIconService? _tray;
 
     public MainWindow()
@@ -39,7 +35,6 @@ public partial class MainWindow : Window
         InitializeComponent();
         _credentials.ConfigurationChanged += OnCredentialConfigurationChanged;
         Loaded += OnLoaded;
-        LocationChanged += (_, _) => SyncFirstRunBackdrop();
         // Logging out or shutting down Windows must not be intercepted as a tray hide.
         System.Windows.Application.Current.SessionEnding += (_, _) => _exitRequested = true;
         Closed += (_, _) => _bridge = null;
@@ -75,7 +70,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        _isClosing = true;
         base.OnClosing(e);
     }
 
@@ -191,7 +185,6 @@ public partial class MainWindow : Window
         UpdateMaximizeGlyph();
         UpdateWindowSurfaceClip();
         ApplyNativeWindowCorners();
-        SyncFirstRunBackdrop();
     }
 
     private void UpdateMaximizeGlyph()
@@ -220,13 +213,6 @@ public partial class MainWindow : Window
 
     private void HideToTray()
     {
-        // The onboarding guide is modeless, so preserve it when hiding the app.
-        _guideWasVisibleBeforeTray = _firstRunDialog?.IsVisible == true;
-        if (_guideWasVisibleBeforeTray)
-        {
-            _firstRunDialog!.Hide();
-            _firstRunBackdrop?.Hide();
-        }
         Hide();
     }
 
@@ -240,19 +226,6 @@ public partial class MainWindow : Window
         if (WindowState == WindowState.Minimized)
             WindowState = WindowState.Normal;
         Activate();
-
-        if (_guideWasVisibleBeforeTray &&
-            _firstRunBackdrop is not null &&
-            _firstRunDialog is not null)
-        {
-            if (!_firstRunBackdrop.IsVisible)
-                _firstRunBackdrop.Show();
-            SyncFirstRunBackdrop();
-            if (!_firstRunDialog.IsVisible)
-                _firstRunDialog.Show();
-            _firstRunDialog.Activate();
-        }
-        _guideWasVisibleBeforeTray = false;
     }
 
     private void ExitFromTray()
@@ -261,7 +234,6 @@ public partial class MainWindow : Window
             return;
 
         _exitRequested = true;
-        _isClosing = true;
         // Remove the notification icon before shutting down the WPF dispatcher.
         _tray?.Dispose();
         _tray = null;
@@ -271,7 +243,6 @@ public partial class MainWindow : Window
     private void WindowSurface_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateWindowSurfaceClip();
-        SyncFirstRunBackdrop();
     }
 
     private void UpdateWindowSurfaceClip()
@@ -445,8 +416,6 @@ public partial class MainWindow : Window
             Browser.Visibility = Visibility.Visible;
             LoadingPanel.Visibility = Visibility.Collapsed;
 
-            if (!AppPaths.FirstRunCompleted)
-                ShowFirstRunGuide(core);
         }
         catch (Exception ex)
         {
@@ -593,7 +562,7 @@ public partial class MainWindow : Window
     }
 
     // A WPF overlay in the main visual tree cannot reliably cover WebView2's native surface.
-    // Use a separate owned window; the onboarding overlay starts BELOW our 38 DIP caption.
+    // Use a separate owned window for the About and Update dialog backdrops.
     private Window CreateBackdropWindow(double topInset)
     {
         var backdrop = new Window
@@ -633,64 +602,6 @@ public partial class MainWindow : Window
             surface.CornerRadius = new CornerRadius(0, 0,
                 WindowState == WindowState.Maximized ? 0 : 10,
                 WindowState == WindowState.Maximized ? 0 : 10);
-    }
-
-    private void SyncFirstRunBackdrop()
-    {
-        if (_firstRunBackdrop is null || WindowState == WindowState.Minimized)
-            return;
-
-        SyncBackdropBounds(_firstRunBackdrop, TitleBarSurface?.ActualHeight is > 0
-            ? TitleBarSurface.ActualHeight : 38);
-
-        if (_firstRunDialog?.IsVisible == true)
-        {
-            _firstRunDialog.Left = _firstRunBackdrop.Left +
-                                   Math.Max(0, (_firstRunBackdrop.Width - _firstRunDialog.Width) / 2);
-            _firstRunDialog.Top = _firstRunBackdrop.Top +
-                                  Math.Max(0, (_firstRunBackdrop.Height - _firstRunDialog.Height) / 2);
-        }
-    }
-
-    private void ShowFirstRunGuide(CoreWebView2 core)
-    {
-        if (_firstRunDialog is not null)
-            return;
-
-        // Show(), not ShowDialog(): the title bar must remain interactive.
-        var backdrop = CreateBackdropWindow(TitleBarSurface.ActualHeight is > 0
-            ? TitleBarSurface.ActualHeight : 38);
-        _firstRunBackdrop = backdrop;
-        var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials), core)
-        {
-            WindowStartupLocation = WindowStartupLocation.Manual
-        };
-        _firstRunDialog = welcome;
-        welcome.Closed += (_, _) =>
-        {
-            _firstRunDialog = null;
-            _firstRunBackdrop = null;
-            backdrop.Close();
-            if (!_isClosing)
-                AppPaths.MarkFirstRunCompleted();
-        };
-
-        try
-        {
-            // WPF requires the owner window to be shown before assigning Window.Owner.
-            backdrop.Show();
-            welcome.Owner = backdrop;
-            welcome.Left = backdrop.Left + Math.Max(0, (backdrop.Width - welcome.Width) / 2);
-            welcome.Top = backdrop.Top + Math.Max(0, (backdrop.Height - welcome.Height) / 2);
-            welcome.Show();
-        }
-        catch
-        {
-            _firstRunDialog = null;
-            _firstRunBackdrop = null;
-            backdrop.Close();
-            throw;
-        }
     }
 
     // Preserve the existing full-window backdrop for modal About and Update dialogs.
