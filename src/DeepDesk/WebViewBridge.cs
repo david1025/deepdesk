@@ -9,14 +9,17 @@ internal sealed class WebViewBridge
     private readonly CoreWebView2 _web;
     private readonly CredentialService _credentials;
     private readonly DeepSeekApiService _api;
+    private readonly Action<bool> _onDarkThemeChanged;
     private readonly ConcurrentDictionary<string, CancellationTokenSource> _requests = new();
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
-    public WebViewBridge(CoreWebView2 web, CredentialService credentials, DeepSeekApiService api)
+    public WebViewBridge(CoreWebView2 web, CredentialService credentials, DeepSeekApiService api,
+        Action<bool> onDarkThemeChanged)
     {
         _web = web;
         _credentials = credentials;
         _api = api;
+        _onDarkThemeChanged = onDarkThemeChanged;
         _web.WebMessageReceived += OnMessage;
     }
 
@@ -30,6 +33,23 @@ internal sealed class WebViewBridge
         {
             using var doc = JsonDocument.Parse(e.WebMessageAsJson);
             var root = doc.RootElement;
+            // One-way UI event: report the resolved theme (also updates in system mode).
+            if (root.TryGetProperty("type", out var eventType) &&
+                eventType.ValueKind == JsonValueKind.String &&
+                eventType.GetString() == "deepdesk-theme")
+            {
+                if (root.TryGetProperty("theme", out var themeValue) &&
+                    themeValue.ValueKind == JsonValueKind.String)
+                {
+                    switch (themeValue.GetString())
+                    {
+                        case "dark": _onDarkThemeChanged(true); break;
+                        case "light": _onDarkThemeChanged(false); break;
+                    }
+                }
+                return;
+            }
+
             requestId = root.TryGetProperty("requestId", out var id) ? id.GetString() : null;
             var action = root.TryGetProperty("action", out var a) ? a.GetString() : null;
             var payload = root.TryGetProperty("payload", out var p) ? p : default;

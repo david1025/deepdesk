@@ -288,6 +288,16 @@ export const importHistory = (
   await write(file, s)
 }
 
+// Synchronize the native Windows title bar with the actual UI theme, including "system".
+{
+  const file = 'src/app/theme.ts'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  document.documentElement.style.colorScheme = theme\n",
+    "  document.documentElement.style.colorScheme = theme\n  window.chrome?.webview?.postMessage({ type: 'deepdesk-theme', theme })\n", file)
+  await write(file, s)
+}
+
 // Apply DeepDesk branding to the upstream document title and localized app name.
 {
   const file = 'src/index.html'

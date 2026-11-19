@@ -23,6 +23,8 @@ public partial class MainWindow : Window
     private readonly CredentialService _credentials = new();
     private WebViewBridge? _bridge;
     private HwndSource? _windowSource;
+    // Null before the page reports its effective light/dark appearance.
+    private bool? _webUiLightTheme;
 
     public MainWindow()
     {
@@ -71,7 +73,7 @@ public partial class MainWindow : Window
 
     private void ApplyWindowsTheme()
     {
-        var light = IsWindowsLightTheme();
+        var light = _webUiLightTheme ?? IsWindowsLightTheme();
         var palette = light
             ? new Dictionary<string, string>
             {
@@ -249,7 +251,11 @@ public partial class MainWindow : Window
                 OpenExternal(args.Uri);
             };
             core.NewWindowRequested += (_, args) => { args.Handled = true; OpenExternal(args.Uri); };
-            _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
+            _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials), isDark =>
+            {
+                _webUiLightTheme = !isDark;
+                ApplyWindowsTheme();
+            });
 
             var nativeCredentialBootstrap = _credentials.Exists
                 ? "localStorage.setItem('chat-demo:api-key','DEEPDESK_NATIVE_CREDENTIAL');"
@@ -341,8 +347,45 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        var dialog = new AboutDialog { Owner = this };
-        dialog.ShowDialog();
+        // A separate transparent window covers both WPF chrome and WebView2.
+        // Changing the owner's Opacity corrupts the embedded browser composition.
+        var screenOrigin = PointToScreen(new Point(0, 0));
+        var deviceToDip = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice
+                          ?? Matrix.Identity;
+        var location = deviceToDip.Transform(screenOrigin);
+
+        var overlay = new Window
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            Left = location.X,
+            Top = location.Y,
+            Width = ActualWidth,
+            Height = ActualHeight,
+            WindowStyle = WindowStyle.None,
+            AllowsTransparency = true,
+            Background = Brushes.Transparent,
+            ShowInTaskbar = false,
+            ShowActivated = false,
+            ResizeMode = ResizeMode.NoResize,
+            Content = new System.Windows.Controls.Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(156, 0, 0, 0)),
+                CornerRadius = WindowState == WindowState.Maximized
+                    ? new CornerRadius(0)
+                    : new CornerRadius(10)
+            }
+        };
+
+        try
+        {
+            overlay.Show();
+            new AboutDialog { Owner = overlay }.ShowDialog();
+        }
+        finally
+        {
+            overlay.Close();
+        }
     }
 
     private static void OpenExternal(string value)
