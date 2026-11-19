@@ -213,13 +213,27 @@ public partial class MainWindow : Window
                   })();
                   """;
             await core.AddScriptToExecuteOnDocumentCreatedAsync($"try{{{nativeCredentialBootstrap}}}catch{{}}");
+            var navigationCompleted = new TaskCompletionSource<bool>(
+                TaskCreationOptions.RunContinuationsAsynchronously);
+            EventHandler<CoreWebView2NavigationCompletedEventArgs>? navigationHandler = null;
+            navigationHandler = (_, args) =>
+            {
+                core.NavigationCompleted -= navigationHandler;
+                if (args.IsSuccess)
+                    navigationCompleted.TrySetResult(true);
+                else
+                    navigationCompleted.TrySetException(new InvalidOperationException(
+                        $"DeepDesk 页面加载失败（WebErrorStatus: {args.WebErrorStatus}）。"));
+            };
+            core.NavigationCompleted += navigationHandler;
             Browser.Source = new Uri("https://deepdesk.local/index.html");
+            await navigationCompleted.Task.WaitAsync(TimeSpan.FromSeconds(60));
             Browser.Visibility = Visibility.Visible;
             LoadingPanel.Visibility = Visibility.Collapsed;
 
             if (!AppPaths.FirstRunCompleted)
             {
-                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials))
+                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials), core)
                 {
                     Owner = this
                 };

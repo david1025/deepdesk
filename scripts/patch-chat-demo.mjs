@@ -698,4 +698,101 @@ export const AccountUsage = () => {
   await write(file, s)
 }
 
+{
+  const file = 'src/main.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import { createRoot } from 'react-dom/client'\n",
+    "import { createRoot } from 'react-dom/client'\nimport { importHistory } from './services/chat/backup.js'\nimport './services/native.js'\n", file)
+  const bridge = \`type DeepDeskHistoryImportResult = { imported: number; skipped: number }
+
+declare global {
+  interface Window {
+    deepDeskHistoryImport?: {
+      begin: (name: string, totalBytes: number) => boolean
+      append: (base64: string) => boolean
+      finish: () => Promise<void>
+      cancel: () => void
+    }
+  }
+}
+
+let deepDeskHistoryName = ''
+let deepDeskHistoryExpectedBytes = 0
+let deepDeskHistoryReceivedBytes = 0
+let deepDeskHistoryChunks: Uint8Array[] = []
+
+const resetDeepDeskHistoryImport = () => {
+  deepDeskHistoryName = ''
+  deepDeskHistoryExpectedBytes = 0
+  deepDeskHistoryReceivedBytes = 0
+  deepDeskHistoryChunks = []
+}
+
+window.deepDeskHistoryImport = {
+  begin(name, totalBytes) {
+    if (!name.toLowerCase().endsWith('.zip') ||
+        !Number.isSafeInteger(totalBytes) ||
+        totalBytes <= 0 ||
+        totalBytes > 512 * 1024 * 1024) {
+      return false
+    }
+    resetDeepDeskHistoryImport()
+    deepDeskHistoryName = name
+    deepDeskHistoryExpectedBytes = totalBytes
+    return true
+  },
+  append(base64) {
+    if (!deepDeskHistoryExpectedBytes || typeof base64 !== 'string') return false
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index)
+    }
+    if (deepDeskHistoryReceivedBytes + bytes.byteLength > deepDeskHistoryExpectedBytes) {
+      resetDeepDeskHistoryImport()
+      return false
+    }
+    deepDeskHistoryChunks.push(bytes)
+    deepDeskHistoryReceivedBytes += bytes.byteLength
+    return true
+  },
+  async finish() {
+    try {
+      if (!deepDeskHistoryExpectedBytes ||
+          deepDeskHistoryReceivedBytes !== deepDeskHistoryExpectedBytes) {
+        throw new Error('文件传输不完整，请重新选择 ZIP 文件。')
+      }
+      const parts: BlobPart[] = deepDeskHistoryChunks.map((chunk) => {
+        const copy = new Uint8Array(chunk.byteLength)
+        copy.set(chunk)
+        return copy.buffer
+      })
+      const file = new File(parts, deepDeskHistoryName, { type: 'application/zip' })
+      const result: DeepDeskHistoryImportResult = await importHistory(file, 'merge')
+      window.chrome?.webview?.postMessage({
+        type: 'deepdesk-history-import-result',
+        success: true,
+        result,
+      })
+    } catch (error) {
+      window.chrome?.webview?.postMessage({
+        type: 'deepdesk-history-import-result',
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      })
+    } finally {
+      resetDeepDeskHistoryImport()
+    }
+  },
+  cancel() {
+    resetDeepDeskHistoryImport()
+  },
+}
+
+\`
+  s = appendBefore(s, "ensureKatex()\n", bridge, file)
+  await write(file, s)
+}
+
 console.log('DeepDesk Chat Demo patches applied.')

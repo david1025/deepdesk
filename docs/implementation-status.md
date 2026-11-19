@@ -36,12 +36,13 @@
 
 - [x] Per-user Inno Setup installer with stable AppId and no administrator requirement.
 - [x] Modern custom WPF first-run welcome window with optional API Key validation, skip, and DPAPI storage.
-- [x] Two-step onboarding: optional API Key setup followed by a guide to import DeepSeek ZIP history; a new marker ensures existing profiles see the revised guide once.
+- [x] Two-step onboarding: optional API Key setup followed by direct ZIP selection and safe history merge import; a new marker ensures existing profiles see the revised guide once.
 - [x] Main window custom title bar moves Check for updates and About out of the Help menu and adapts to Windows light/dark app theme.
 - [x] Hide the main window until first-run onboarding is dismissed; avoid showing an empty shell behind the welcome dialog.
 - [x] Help → Check for updates queries stable GitHub Releases and opens the release page; installation remains user-controlled.
 - [x] Keep user data under LocalAppData, outside the install directory.
 - [ ] Build and inspect the Preview 3 installer artifact in CI for this UI revision.
+- [ ] Verify onboarding ZIP import with a real DeepSeek export, including duplicate skipping and error recovery.
 - [ ] Manually verify title-bar drag, resize, maximize/restore, and live theme switching on Windows.
 - [ ] Verify clean install, upgrade over existing install, and uninstall data preservation on Windows.
 - [ ] Code-sign installer and executable.

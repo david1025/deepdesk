@@ -144,3 +144,16 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] Minimize, maximize/restore, close, drag, and window resize work with the custom title bar.
 - [ ] Title bar colors switch with Windows light/dark app theme, including after a live theme change.
 - [ ] WebView2 content remains usable after the custom title bar is applied.
+
+
+## Stage 4 — direct history import in onboarding
+
+- [ ] Step 2 opens a native file picker and accepts DeepSeek-exported ZIP archives.
+- [ ] Selected archive name and size are displayed before import.
+- [ ] "Start import" transfers the selected file to the renderer in bounded chunks; the UI displays transfer progress.
+- [ ] The renderer validates the ZIP using the existing archive parser and performs the existing safe merge import.
+- [ ] Existing chats and attachments remain intact; duplicate sessions are skipped.
+- [ ] Import success displays added and skipped session counts; Finish is enabled only after successful import.
+- [ ] Invalid, incomplete, empty, oversized, or unreadable ZIP files show an actionable error and can be retried.
+- [ ] Users can skip import and continue without choosing a file.
+- [ ] The first-run dialog is shown only after the WebView2 app page and native import bridge are ready.
