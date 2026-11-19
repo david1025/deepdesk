@@ -48,10 +48,7 @@ public partial class MainWindow : Window
                         args.Request.Headers.SetHeader("x-api-key", key);
                     }
                 }
-                catch (Exception ex)
-                {
-                    RuntimeLog.Write($"API credential injection failed: {ex.GetType().Name}");
-                }
+                catch (Exception ex) { RuntimeLog.Write($"API credential injection failed: {ex.GetType().Name}"); }
             };
             core.Settings.AreDefaultContextMenusEnabled = true;
             core.Settings.IsStatusBarEnabled = false;
@@ -64,12 +61,16 @@ public partial class MainWindow : Window
                 args.Cancel = true;
                 OpenExternal(args.Uri);
             };
-            core.NewWindowRequested += (_, args) =>
-            {
-                args.Handled = true;
-                OpenExternal(args.Uri);
-            };
+            core.NewWindowRequested += (_, args) => { args.Handled = true; OpenExternal(args.Uri); };
             _bridge = new WebViewBridge(core, _credentials, new DeepSeekApiService(_credentials));
+
+            if (!_credentials.Exists && !AppPaths.FirstRunCompleted)
+            {
+                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials)) { Owner = this };
+                welcome.ShowDialog();
+                AppPaths.MarkFirstRunCompleted();
+            }
+
             var nativeCredentialBootstrap = _credentials.Exists
                 ? "localStorage.setItem('chat-demo:api-key','DEEPDESK_NATIVE_CREDENTIAL');"
                 : """
@@ -89,8 +90,7 @@ public partial class MainWindow : Window
                     } catch {}
                   })();
                   """;
-            await core.AddScriptToExecuteOnDocumentCreatedAsync(
-                $"try{{{nativeCredentialBootstrap}}}catch{{}}");
+            await core.AddScriptToExecuteOnDocumentCreatedAsync($"try{{{nativeCredentialBootstrap}}}catch{{}}");
             Browser.Source = new Uri("https://deepdesk.local/index.html");
             Browser.Visibility = Visibility.Visible;
             LoadingPanel.Visibility = Visibility.Collapsed;
@@ -103,14 +103,49 @@ public partial class MainWindow : Window
         }
     }
 
+    private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
+    {
+        UpdateMenuItem.IsEnabled = false;
+        UpdateMenuItem.Header = "正在检查更新…";
+        try
+        {
+            var update = await UpdateService.CheckAsync();
+            var current = UpdateService.CurrentVersion;
+            if (update is null)
+            {
+                MessageBox.Show(this, $"当前版本：{current}\n暂未发现更新。", "DeepDesk 更新", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                var result = MessageBox.Show(this,
+                    $"发现新版本 {update.Version}\n当前版本：{current}\n\n将打开 GitHub 发布页面。请退出 DeepDesk 后运行安装程序。\n\n安装更新不会删除本地聊天记录和 API Key。",
+                    "发现 DeepDesk 更新", MessageBoxButton.OKCancel, MessageBoxImage.Information);
+                if (result == MessageBoxResult.OK) OpenExternal(update.ReleaseUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            RuntimeLog.Write($"Update check failed: {ex.GetType().Name}");
+            MessageBox.Show(this, "检查更新失败，请稍后重试，或访问 DeepDesk GitHub Releases 页面。", "DeepDesk 更新", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+        finally
+        {
+            UpdateMenuItem.IsEnabled = true;
+            UpdateMenuItem.Header = "检查更新…";
+        }
+    }
+
+    private void About_Click(object sender, RoutedEventArgs e)
+    {
+        MessageBox.Show(this, $"DeepDesk {UpdateService.CurrentVersion}\n本地运行 · 数据保存在本机\n\nGitHub: david1025/deepdesk",
+            "关于 DeepDesk", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private static void OpenExternal(string value)
     {
         if (!Uri.TryCreate(value, UriKind.Absolute, out var uri) ||
             (uri.Scheme != Uri.UriSchemeHttps && uri.Scheme != Uri.UriSchemeHttp) ||
             uri.UserInfo.Length > 0) return;
-        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri)
-        {
-            UseShellExecute = true
-        });
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
     }
 }
