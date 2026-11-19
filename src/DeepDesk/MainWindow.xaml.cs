@@ -342,8 +342,8 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        MessageBox.Show(this, $"DeepDesk {UpdateService.CurrentVersion}\n本地运行 · 数据保存在本机\n\nGitHub: david1025/deepdesk",
-            "关于 DeepDesk", MessageBoxButton.OK, MessageBoxImage.Information);
+        var dialog = new AboutDialog { Owner = this };
+        dialog.ShowDialog();
     }
 
     private static void OpenExternal(string value)
