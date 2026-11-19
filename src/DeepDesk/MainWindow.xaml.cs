@@ -119,8 +119,32 @@ public partial class MainWindow : Window
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
     {
+        UpdateMaximizeGlyph();
         UpdateWindowSurfaceClip();
         ApplyNativeWindowCorners();
+    }
+
+    private void UpdateMaximizeGlyph()
+    {
+        var maximized = WindowState == WindowState.Maximized;
+        MaximizeNormalGlyph.Visibility = maximized ? Visibility.Collapsed : Visibility.Visible;
+        MaximizeRestoreGlyph.Visibility = maximized ? Visibility.Visible : Visibility.Collapsed;
+        MaximizeButton.ToolTip = maximized ? "还原" : "最大化";
+    }
+
+    private void Minimize_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState.Minimized;
+    }
+
+    private void MaximizeRestore_Click(object sender, RoutedEventArgs e)
+    {
+        WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+    }
+
+    private void CloseWindow_Click(object sender, RoutedEventArgs e)
+    {
+        Close();
     }
 
     private void WindowSurface_SizeChanged(object sender, SizeChangedEventArgs e)
