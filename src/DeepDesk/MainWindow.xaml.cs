@@ -54,8 +54,9 @@ public partial class MainWindow : Window
         try
         {
             _tray = new TrayIconService(
-                () => Dispatcher.BeginInvoke(new Action(RestoreFromTray)),
-                () => Dispatcher.BeginInvoke(new Action(ExitFromTray)));
+                RestoreFromTray,
+                ExitFromTray,
+                () => !(_webUiLightTheme ?? IsWindowsLightTheme()));
         }
         catch (Exception ex)
         {
@@ -153,6 +154,7 @@ public partial class MainWindow : Window
         TitleBarSurface.Background = (Brush)Resources["TitleBarBackgroundBrush"];
         TitleBarSurface.BorderBrush = (Brush)Resources["TitleBarBorderBrush"];
         TitleBarIconBorder.Background = (Brush)Resources["TitleBarIconBackgroundBrush"];
+        _tray?.RefreshTheme();
     }
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
