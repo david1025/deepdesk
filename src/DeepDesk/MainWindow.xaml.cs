@@ -498,15 +498,18 @@ public partial class MainWindow : Window
               overlay.append(button);
 
               if (type === 'application/pdf') {
-                const frame = document.createElement('iframe');
-                frame.src = fileUrl;
-                frame.title = 'PDF 预览';
-                frame.setAttribute('sandbox', 'allow-scripts allow-downloads');
-                Object.assign(frame.style, {
+                // Chromium's built-in PDF viewer cannot reliably load in a
+                // sandboxed iframe. An object with an explicit PDF MIME type
+                // gives it the expected isolated viewer context.
+                const pdf = document.createElement('object');
+                pdf.data = fileUrl;
+                pdf.type = 'application/pdf';
+                pdf.setAttribute('aria-label', 'PDF 预览');
+                Object.assign(pdf.style, {
                   border: '0', width: 'min(100%, 1150px)',
                   height: '100%', background: '#fff', borderRadius: '8px'
                 });
-                overlay.append(frame);
+                overlay.append(pdf);
               } else {
                 const image = document.createElement('img');
                 image.src = fileUrl;
