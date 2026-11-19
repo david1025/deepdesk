@@ -384,7 +384,6 @@ public partial class MainWindow : Window
         _firstRunBackdrop = backdrop;
         var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials), core)
         {
-            Owner = backdrop,
             WindowStartupLocation = WindowStartupLocation.Manual
         };
         _firstRunDialog = welcome;
@@ -399,7 +398,9 @@ public partial class MainWindow : Window
 
         try
         {
+            // WPF requires the owner window to be shown before assigning Window.Owner.
             backdrop.Show();
+            welcome.Owner = backdrop;
             welcome.Left = backdrop.Left + Math.Max(0, (backdrop.Width - welcome.Width) / 2);
             welcome.Top = backdrop.Top + Math.Max(0, (backdrop.Height - welcome.Height) / 2);
             welcome.Show();
