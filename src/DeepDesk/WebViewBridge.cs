@@ -48,7 +48,7 @@ internal sealed class WebViewBridge
                     Reply(requestId, true, new { opened = true });
                     break;
                 case "app.getStatus":
-                    Reply(requestId, true, new { apiKeyConfigured = _credentials.Exists, appVersion = "0.1.0" });
+                    Reply(requestId, true, new { apiKeyConfigured = _credentials.Exists, appVersion = UpdateService.CurrentVersion });
                     break;
                 case "settings.configureApiKey":
                     var dialog = new ApiKeyDialog { Owner = System.Windows.Application.Current.MainWindow };
