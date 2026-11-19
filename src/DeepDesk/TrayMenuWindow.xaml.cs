@@ -46,22 +46,16 @@ public partial class TrayMenuWindow : Window
                 ["TraySurfaceBrush"] = "#2B2B2E",
                 ["TrayBorderBrush"] = "#414145",
                 ["TrayTextBrush"] = "#F1F2F5",
-                ["TrayMutedBrush"] = "#A5A6B2",
-                ["TrayHoverBrush"] = "#41434A",
-                ["TrayDividerBrush"] = "#424348",
-                ["TrayDangerBrush"] = "#FF7F87",
-                ["TrayDangerHoverBrush"] = "#4E3037"
+                ["TrayHoverBrush"] = "#404146",
+                ["TrayDividerBrush"] = "#424348"
             }
             : new Dictionary<string, string>
             {
                 ["TraySurfaceBrush"] = "#FFFFFF",
-                ["TrayBorderBrush"] = "#E7EAF0",
-                ["TrayTextBrush"] = "#182236",
-                ["TrayMutedBrush"] = "#8A94A7",
-                ["TrayHoverBrush"] = "#F1F5FF",
-                ["TrayDividerBrush"] = "#ECEDF1",
-                ["TrayDangerBrush"] = "#D73A43",
-                ["TrayDangerHoverBrush"] = "#FFF0F1"
+                ["TrayBorderBrush"] = "#E9EBEF",
+                ["TrayTextBrush"] = "#22252B",
+                ["TrayHoverBrush"] = "#F4F5F7",
+                ["TrayDividerBrush"] = "#E7E9EC"
             };
 
         foreach (var (key, hex) in palette)
