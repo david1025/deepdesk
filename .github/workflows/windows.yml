@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, "feature/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "feature/windows-native-shell"]
   workflow_dispatch:
 
 concurrency:
