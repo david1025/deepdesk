@@ -3,7 +3,7 @@ on:
   push:
     branches: [main, "feature/**"]
   pull_request:
-    branches: [main]
+    branches: [main, "feature/windows-native-shell"]
   workflow_dispatch:
 
 concurrency:
@@ -20,7 +20,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: deepseek-ai/chat-demo
-          ref: 5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c
+          ref: 429af5a4558469496b231631e850fbccc0c30c87
           path: vendor/chat-demo
           persist-credentials: false
 
@@ -76,7 +76,7 @@ jobs:
           Copy-Item "vendor/chat-demo/dist/*" "src/chat-ui/dist/" -Recurse -Force
           Copy-Item "vendor/chat-demo/LICENSE" "src/chat-ui/dist/LICENSE" -Force
           Copy-Item "src/DeepDesk/Assets/deepdesk-logo.png" "src/chat-ui/dist/deepdesk-logo.png" -Force
-          Set-Content -Path "src/chat-ui/dist/UPSTREAM_VERSION.txt" -Value "deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c"
+          Set-Content -Path "src/chat-ui/dist/UPSTREAM_VERSION.txt" -Value "deepseek-ai/chat-demo@429af5a4558469496b231631e850fbccc0c30c87"
 
       - name: Build WPF host
         run: dotnet build src/DeepDesk/DeepDesk.csproj -c Release
