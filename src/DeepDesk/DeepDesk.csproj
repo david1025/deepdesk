@@ -14,6 +14,11 @@
     <RootNamespace>DeepDesk</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Keep WinForms references for NotifyIcon, but avoid its implicit global namespace
+         leaking into WPF source files (Application, KeyEventArgs, MessageBox, etc.). -->
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
     <Resource Include="Assets\deepdesk-logo.png" />
     <Resource Include="Assets\deepdesk-icon.ico" />
   </ItemGroup>
