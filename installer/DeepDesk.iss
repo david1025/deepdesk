@@ -23,6 +23,7 @@ ArchitecturesAllowed=x64
 Compression=lzma2
 SolidCompression=yes
 WizardStyle=modern
+SetupIconFile=..\src\DeepDesk\Assets\deepdesk-icon.ico
 PrivilegesRequired=lowest
 Uninstallable=yes
 SetupLogging=yes

@@ -292,7 +292,7 @@ export const importHistory = (
 {
   const file = 'src/index.html'
   let s = await read(file)
-  s = replaceOnce(s, '<title>API 使用 demo</title>', '<title>DeepDesk</title>', file)
+  s = replaceOnce(s, '<title>API 使用 demo</title>', '<link rel="icon" type="image/png" href="/deepdesk-logo.png" />\\n    <title>DeepDesk</title>', file)
   await write(file, s)
 }
 {
@@ -812,6 +812,22 @@ window.deepDeskHistoryImport = {
 
 `
   s = appendBefore(s, "ensureKatex()\n", bridge, file)
+  await write(file, s)
+}
+
+// Add the DeepDesk brand mark to the upstream sidebar.
+{
+  const file = 'src/components/sider/Sider.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "      <div className={styles.top}>\\n        <div className={styles.appName}>{t('appName')}</div>\\n",
+    "      <div className={styles.top}>\\n        <div className={styles.brand}>\\n          <img className={styles.brandLogo} src=\"/deepdesk-logo.png\" alt=\"\" />\\n          <div className={styles.appName}>{t('appName')}</div>\\n        </div>\\n", file)
+  await write(file, s)
+}
+{
+  const file = 'src/components/sider/Sider.module.css'
+  let s = await read(file)
+  s = appendBefore(s, '.appName {\\n', `.brand {\\n  display: flex;\\n  align-items: center;\\n  gap: 8px;\\n  min-width: 0;\\n}\\n\\n.brandLogo {\\n  display: block;\\n  flex: 0 0 auto;\\n  width: 30px;\\n  height: 30px;\\n  object-fit: contain;\\n}\\n\\n`, file)
   await write(file, s)
 }
 

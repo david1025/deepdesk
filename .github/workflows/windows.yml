@@ -75,6 +75,7 @@ jobs:
           New-Item -ItemType Directory -Force "src/chat-ui/dist" | Out-Null
           Copy-Item "vendor/chat-demo/dist/*" "src/chat-ui/dist/" -Recurse -Force
           Copy-Item "vendor/chat-demo/LICENSE" "src/chat-ui/dist/LICENSE" -Force
+          Copy-Item "src/DeepDesk/Assets/deepdesk-logo.png" "src/chat-ui/dist/deepdesk-logo.png" -Force
           Set-Content -Path "src/chat-ui/dist/UPSTREAM_VERSION.txt" -Value "deepseek-ai/chat-demo@5d5dd754ebc1948e977ddb880a9eb5aa25f37b4c"
 
       - name: Build WPF host

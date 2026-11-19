@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
+        Icon="/DeepDesk;component/Assets/deepdesk-icon.ico"
         Title="DeepDesk" Height="820" Width="1280" MinHeight="600" MinWidth="820"
         WindowStartupLocation="CenterScreen" WindowStyle="None" ResizeMode="CanResize"
         Background="#FFFFFF" FontFamily="Microsoft YaHei UI" FontSize="12"
@@ -124,9 +125,8 @@
           <Border x:Name="TitleBarIconBorder" Width="18" Height="18" CornerRadius="4"
                   Background="{DynamicResource TitleBarIconBackgroundBrush}"
                   VerticalAlignment="Center">
-            <TextBlock x:Name="TitleBarIconText" Text="D" FontSize="11" FontWeight="Bold"
-                       Foreground="{DynamicResource TitleBarIconForegroundBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            <Image Source="/DeepDesk;component/Assets/deepdesk-logo.png" Stretch="Uniform"
+                   Width="18" Height="18"/>
           </Border>
 
           <TextBlock Grid.Column="1" Text="DeepDesk" Margin="7,0,12,0"
@@ -176,6 +176,8 @@
         <wv2:WebView2 x:Name="Browser" Visibility="Collapsed"/>
         <Grid x:Name="LoadingPanel" Background="{DynamicResource WindowBackgroundBrush}">
           <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Width="360">
+            <Image Source="/DeepDesk;component/Assets/deepdesk-logo.png" Width="52" Height="52"
+                   Stretch="Uniform" HorizontalAlignment="Center" Margin="0,0,0,14"/>
             <TextBlock Text="DeepDesk" FontSize="24" FontWeight="SemiBold"
                        Foreground="{DynamicResource TitleBarForegroundBrush}" HorizontalAlignment="Center"/>
             <TextBlock Text="正在启动本地 AI 工作空间…" Margin="0,10,0,0" FontSize="12"

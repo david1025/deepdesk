@@ -114,7 +114,6 @@ public partial class MainWindow : Window
         TitleBarSurface.Background = (Brush)Resources["TitleBarBackgroundBrush"];
         TitleBarSurface.BorderBrush = (Brush)Resources["TitleBarBorderBrush"];
         TitleBarIconBorder.Background = (Brush)Resources["TitleBarIconBackgroundBrush"];
-        TitleBarIconText.Foreground = (Brush)Resources["TitleBarIconForegroundBrush"];
     }
 
     private void OnWindowStateChanged(object? sender, EventArgs e)
