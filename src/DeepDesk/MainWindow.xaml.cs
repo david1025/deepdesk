@@ -1,5 +1,6 @@
 using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -28,13 +29,18 @@ public partial class MainWindow : Window
     private Window? _firstRunBackdrop;
     private FirstRunDialog? _firstRunDialog;
     private bool _isClosing;
+    private bool _exitRequested;
+    private bool _startupStarted;
+    private bool _guideWasVisibleBeforeTray;
+    private TrayIconService? _tray;
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += OnLoaded;
         LocationChanged += (_, _) => SyncFirstRunBackdrop();
-        Closing += (_, _) => _isClosing = true;
+        // Logging out or shutting down Windows must not be intercepted as a tray hide.
+        System.Windows.Application.Current.SessionEnding += (_, _) => _exitRequested = true;
         Closed += (_, _) => _bridge = null;
     }
 
@@ -45,12 +51,38 @@ public partial class MainWindow : Window
         _windowSource?.AddHook(WindowMessageHook);
         ApplyWindowsTheme();
         ApplyNativeWindowCorners();
+        try
+        {
+            _tray = new TrayIconService(
+                () => Dispatcher.BeginInvoke(new Action(RestoreFromTray)),
+                () => Dispatcher.BeginInvoke(new Action(ExitFromTray)));
+        }
+        catch (Exception ex)
+        {
+            // Without a tray icon, let the normal Close operation exit the program.
+            RuntimeLog.Write($"Tray initialization failed: {ex.GetType().Name}");
+        }
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (!_exitRequested && _tray is not null)
+        {
+            e.Cancel = true;
+            HideToTray();
+            return;
+        }
+
+        _isClosing = true;
+        base.OnClosing(e);
     }
 
     protected override void OnClosed(EventArgs e)
     {
         if (_windowSource is not null)
             _windowSource.RemoveHook(WindowMessageHook);
+        _tray?.Dispose();
+        _tray = null;
         base.OnClosed(e);
     }
 
@@ -151,7 +183,58 @@ public partial class MainWindow : Window
 
     private void CloseWindow_Click(object sender, RoutedEventArgs e)
     {
+        // All close paths (including Alt+F4) are handled by OnClosing.
         Close();
+    }
+
+    private void HideToTray()
+    {
+        // The onboarding guide is modeless, so preserve it when hiding the app.
+        _guideWasVisibleBeforeTray = _firstRunDialog?.IsVisible == true;
+        if (_guideWasVisibleBeforeTray)
+        {
+            _firstRunDialog!.Hide();
+            _firstRunBackdrop?.Hide();
+        }
+        Hide();
+    }
+
+    private void RestoreFromTray()
+    {
+        if (_exitRequested)
+            return;
+
+        if (!IsVisible)
+            Show();
+        if (WindowState == WindowState.Minimized)
+            WindowState = WindowState.Normal;
+        Activate();
+
+        if (_guideWasVisibleBeforeTray &&
+            _firstRunBackdrop is not null &&
+            _firstRunDialog is not null)
+        {
+            if (!_firstRunBackdrop.IsVisible)
+                _firstRunBackdrop.Show();
+            SyncFirstRunBackdrop();
+            if (!_firstRunDialog.IsVisible)
+                _firstRunDialog.Show();
+            _firstRunDialog.Activate();
+        }
+        _guideWasVisibleBeforeTray = false;
+    }
+
+    private void ExitFromTray()
+    {
+        if (_exitRequested)
+            return;
+
+        _exitRequested = true;
+        _isClosing = true;
+        // Remove the notification icon before shutting down the WPF dispatcher.
+        _tray?.Dispose();
+        _tray = null;
+        System.Windows.Application.Current.Shutdown();
     }
 
     private void WindowSurface_SizeChanged(object sender, SizeChangedEventArgs e)
@@ -199,6 +282,10 @@ public partial class MainWindow : Window
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
+        // Restoring from the tray must never initialize WebView2 a second time.
+        if (_startupStarted)
+            return;
+        _startupStarted = true;
         try
         {
             if (!Directory.Exists(AppPaths.UiDirectory))
