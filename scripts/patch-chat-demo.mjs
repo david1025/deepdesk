@@ -704,7 +704,7 @@ export const AccountUsage = () => {
   s = replaceOnce(s,
     "import { createRoot } from 'react-dom/client'\n",
     "import { createRoot } from 'react-dom/client'\nimport { importHistory } from './services/chat/backup.js'\nimport './services/native.js'\n", file)
-  const bridge = \`type DeepDeskHistoryImportResult = { imported: number; skipped: number }
+  const bridge = `type DeepDeskHistoryImportResult = { imported: number; skipped: number }
 
 declare global {
   interface Window {
@@ -790,7 +790,7 @@ window.deepDeskHistoryImport = {
   },
 }
 
-\`
+`
   s = appendBefore(s, "ensureKatex()\n", bridge, file)
   await write(file, s)
 }
