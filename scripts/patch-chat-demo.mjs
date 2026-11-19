@@ -288,6 +288,26 @@ export const importHistory = (
   await write(file, s)
 }
 
+// Apply DeepDesk branding to the upstream document title and localized app name.
+{
+  const file = 'src/index.html'
+  let s = await read(file)
+  s = replaceOnce(s, '<title>API 使用 demo</title>', '<title>DeepDesk</title>', file)
+  await write(file, s)
+}
+{
+  const file = 'src/i18n/zh.ts'
+  let s = await read(file)
+  s = replaceOnce(s, "  appName: 'API 使用 demo',", "  appName: 'DeepDesk',", file)
+  await write(file, s)
+}
+{
+  const file = 'src/i18n/en.ts'
+  let s = await read(file)
+  s = replaceOnce(s, "  appName: 'API usage demo',", "  appName: 'DeepDesk',", file)
+  await write(file, s)
+}
+
 {
   const file = 'src/i18n/zh.ts'
   let s = await read(file)
