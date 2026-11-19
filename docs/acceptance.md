@@ -101,3 +101,18 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 | 2026-11-18 | owner-reported test build (commit not recorded) | Windows; package type not recorded | Startup; professional mode persists after restart; Deep Thinking hidden in professional mode; chat, streaming and history; ZIP import (merge/replace) and export | Pass (reported) | Professional-mode exit, specific model/effort persistence and request payloads not separately verified |
 | 2026-11-18 | owner-reported test build (commit not recorded) | Windows; package type not recorded | PDF upload/read, drag-drop, Ctrl+V paste; balance and Token display; web reading and search; code and formula rendering | Pass (reported) | Voice input not tested; API key replacement not tested; no value-by-value balance/usage reconciliation |
 | Pending | pending | pending | Remaining checklist | Not run | Requires Windows desktop and real API key |
+
+
+## Stage 4 — Windows productization checks
+
+- [ ] Install using `DeepDesk-Setup-x64` without administrator privileges.
+- [ ] Confirm Start Menu shortcut and optional desktop shortcut.
+- [ ] First run: validate and save a valid API Key; verify invalid key is not saved.
+- [ ] First run: skip API Key setup, then configure later in Settings.
+- [ ] Confirm API Key is stored using Windows DPAPI and is not written to renderer localStorage as plaintext.
+- [ ] Install a newer build over an existing installation; verify chats, attachments, API Key, settings and WebView2 profile remain available.
+- [ ] Uninstall; verify user data under `%LOCALAPPDATA%\\DeepDesk` remains.
+- [ ] Reinstall; verify existing user data can be used again.
+- [ ] Help → Check for updates: latest stable release opens; no-update and network-error messages are correct.
+- [ ] Confirm app version displayed in About and bridge status matches the build.
+- [ ] Confirm installer publisher/signature warning is documented until signing is configured.
