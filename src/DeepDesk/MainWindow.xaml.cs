@@ -80,9 +80,11 @@ public partial class MainWindow : Window
 
             if (!_credentials.Exists && !AppPaths.FirstRunCompleted)
             {
-                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials)) { Owner = this };
+                Hide();
+                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials));
                 welcome.ShowDialog();
                 AppPaths.MarkFirstRunCompleted();
+                Show();
             }
 
             var nativeCredentialBootstrap = _credentials.Exists
