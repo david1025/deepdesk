@@ -54,7 +54,7 @@ public partial class FirstRunDialog : Window
     private void Close_Click(object sender, RoutedEventArgs e)
     {
         if (!_isSaving && !_isImportingHistory)
-            DialogResult = false;
+            Close();
     }
 
     private void OpenApiPortal_Click(object sender, RoutedEventArgs e)
@@ -106,13 +106,13 @@ public partial class FirstRunDialog : Window
     private void SkipImport_Click(object sender, RoutedEventArgs e)
     {
         if (!_isImportingHistory)
-            DialogResult = true;
+            Close();
     }
 
     private void Finish_Click(object sender, RoutedEventArgs e)
     {
         if (!_isImportingHistory && FinishButton.IsEnabled)
-            DialogResult = true;
+            Close();
     }
 
     private void ShowStepOne()
@@ -121,7 +121,6 @@ public partial class FirstRunDialog : Window
         StepTwoPanel.Visibility = Visibility.Collapsed;
         StepOneActions.Visibility = Visibility.Visible;
         StepTwoActions.Visibility = Visibility.Collapsed;
-        FooterHint.Text = "API Key 不是必填项，可以稍后配置。";
         if (!_hasExistingKey)
             ApiKeyBox.Focus();
     }
@@ -132,7 +131,6 @@ public partial class FirstRunDialog : Window
         StepTwoPanel.Visibility = Visibility.Visible;
         StepOneActions.Visibility = Visibility.Collapsed;
         StepTwoActions.Visibility = Visibility.Visible;
-        FooterHint.Text = "选择 ZIP 文件后即可在这里直接导入，也可以跳过。";
     }
 
     private void ChooseHistoryFile_Click(object sender, RoutedEventArgs e)

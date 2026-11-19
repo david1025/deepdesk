@@ -25,11 +25,16 @@ public partial class MainWindow : Window
     private HwndSource? _windowSource;
     // Null before the page reports its effective light/dark appearance.
     private bool? _webUiLightTheme;
+    private Window? _firstRunBackdrop;
+    private FirstRunDialog? _firstRunDialog;
+    private bool _isClosing;
 
     public MainWindow()
     {
         InitializeComponent();
         Loaded += OnLoaded;
+        LocationChanged += (_, _) => SyncFirstRunBackdrop();
+        Closing += (_, _) => _isClosing = true;
         Closed += (_, _) => _bridge = null;
     }
 
@@ -123,6 +128,7 @@ public partial class MainWindow : Window
         UpdateMaximizeGlyph();
         UpdateWindowSurfaceClip();
         ApplyNativeWindowCorners();
+        SyncFirstRunBackdrop();
     }
 
     private void UpdateMaximizeGlyph()
@@ -151,6 +157,7 @@ public partial class MainWindow : Window
     private void WindowSurface_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         UpdateWindowSurfaceClip();
+        SyncFirstRunBackdrop();
     }
 
     private void UpdateWindowSurfaceClip()
@@ -296,14 +303,7 @@ public partial class MainWindow : Window
             LoadingPanel.Visibility = Visibility.Collapsed;
 
             if (!AppPaths.FirstRunCompleted)
-            {
-                var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials), core)
-                {
-                    Owner = this
-                };
-                welcome.ShowDialog();
-                AppPaths.MarkFirstRunCompleted();
-            }
+                ShowFirstRunGuide(core);
         }
         catch (Exception ex)
         {
@@ -313,30 +313,156 @@ public partial class MainWindow : Window
         }
     }
 
+    // A WPF overlay in the main visual tree cannot reliably cover WebView2's native surface.
+    // Use a separate owned window; the onboarding overlay starts BELOW our 38 DIP caption.
+    private Window CreateBackdropWindow(double topInset)
+    {
+        var backdrop = new Window
+        {
+            Owner = this,
+            WindowStartupLocation = WindowStartupLocation.Manual,
+            WindowStyle = WindowStyle.None,
+            AllowsTransparency = true,
+            Background = Brushes.Transparent,
+            ShowInTaskbar = false,
+            ShowActivated = false,
+            ResizeMode = ResizeMode.NoResize,
+            Content = new System.Windows.Controls.Border
+            {
+                Background = new SolidColorBrush(Color.FromArgb(156, 0, 0, 0))
+            }
+        };
+        SyncBackdropBounds(backdrop, topInset);
+        return backdrop;
+    }
+
+    private void SyncBackdropBounds(Window backdrop, double topInset)
+    {
+        if (WindowState == WindowState.Minimized)
+            return;
+
+        var screenPoint = PointToScreen(new Point(0, topInset));
+        var deviceToDip = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice
+                          ?? Matrix.Identity;
+        var location = deviceToDip.Transform(screenPoint);
+        backdrop.Left = location.X;
+        backdrop.Top = location.Y;
+        backdrop.Width = ActualWidth;
+        backdrop.Height = Math.Max(1, ActualHeight - topInset);
+
+        if (backdrop.Content is System.Windows.Controls.Border surface)
+            surface.CornerRadius = new CornerRadius(0, 0,
+                WindowState == WindowState.Maximized ? 0 : 10,
+                WindowState == WindowState.Maximized ? 0 : 10);
+    }
+
+    private void SyncFirstRunBackdrop()
+    {
+        if (_firstRunBackdrop is null || WindowState == WindowState.Minimized)
+            return;
+
+        SyncBackdropBounds(_firstRunBackdrop, TitleBarSurface?.ActualHeight is > 0
+            ? TitleBarSurface.ActualHeight : 38);
+
+        if (_firstRunDialog?.IsVisible == true)
+        {
+            _firstRunDialog.Left = _firstRunBackdrop.Left +
+                                   Math.Max(0, (_firstRunBackdrop.Width - _firstRunDialog.Width) / 2);
+            _firstRunDialog.Top = _firstRunBackdrop.Top +
+                                  Math.Max(0, (_firstRunBackdrop.Height - _firstRunDialog.Height) / 2);
+        }
+    }
+
+    private void ShowFirstRunGuide(CoreWebView2 core)
+    {
+        if (_firstRunDialog is not null)
+            return;
+
+        // Show(), not ShowDialog(): the title bar must remain interactive.
+        var backdrop = CreateBackdropWindow(TitleBarSurface.ActualHeight is > 0
+            ? TitleBarSurface.ActualHeight : 38);
+        _firstRunBackdrop = backdrop;
+        var welcome = new FirstRunDialog(_credentials, new DeepSeekApiService(_credentials), core)
+        {
+            Owner = backdrop,
+            WindowStartupLocation = WindowStartupLocation.Manual
+        };
+        _firstRunDialog = welcome;
+        welcome.Closed += (_, _) =>
+        {
+            _firstRunDialog = null;
+            _firstRunBackdrop = null;
+            backdrop.Close();
+            if (!_isClosing)
+                AppPaths.MarkFirstRunCompleted();
+        };
+
+        try
+        {
+            backdrop.Show();
+            welcome.Left = backdrop.Left + Math.Max(0, (backdrop.Width - welcome.Width) / 2);
+            welcome.Top = backdrop.Top + Math.Max(0, (backdrop.Height - welcome.Height) / 2);
+            welcome.Show();
+        }
+        catch
+        {
+            _firstRunDialog = null;
+            _firstRunBackdrop = null;
+            backdrop.Close();
+            throw;
+        }
+    }
+
+    // Preserve the existing full-window backdrop for modal About and Update dialogs.
+    private bool? ShowDecoratedDialog(Window dialog)
+    {
+        var backdrop = CreateBackdropWindow(0);
+        try
+        {
+            backdrop.Show();
+            dialog.Owner = backdrop;
+            return dialog.ShowDialog();
+        }
+        finally
+        {
+            backdrop.Close();
+        }
+    }
+
     private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
     {
         CheckForUpdatesButton.IsEnabled = false;
         CheckForUpdatesButton.Content = "检查中…";
+
         try
         {
             var update = await UpdateService.CheckAsync();
-            var current = UpdateService.CurrentVersion;
+            var current = UpdateService.CurrentVersion.Split('+', 2)[0];
             if (update is null)
             {
-                MessageBox.Show(this, $"当前版本：{current}\n暂未发现更新。", "DeepDesk 更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                ShowDecoratedDialog(new UpdateDialog(
+                    "已是最新版本",
+                    $"当前版本：{current}",
+                    "暂未发现可用更新。"));
             }
             else
             {
-                var result = MessageBox.Show(this,
-                    $"发现新版本 {update.Version}\n当前版本：{current}\n\n将打开 GitHub 发布页面。请退出 DeepDesk 后运行安装程序。\n\n安装更新不会删除本地聊天记录和 API Key。",
-                    "发现 DeepDesk 更新", MessageBoxButton.OKCancel, MessageBoxImage.Information);
-                if (result == MessageBoxResult.OK) OpenExternal(update.ReleaseUrl);
+                var dialog = new UpdateDialog(
+                    $"发现新版本 {update.Version}",
+                    $"当前版本：{current}",
+                    "安装新版本不会删除本地对话或 API Key。",
+                    "前往下载");
+                if (ShowDecoratedDialog(dialog) == true)
+                    OpenExternal(update.ReleaseUrl);
             }
         }
         catch (Exception ex)
         {
             RuntimeLog.Write($"Update check failed: {ex.GetType().Name}");
-            MessageBox.Show(this, "检查更新失败，请稍后重试，或访问 DeepDesk GitHub Releases 页面。", "DeepDesk 更新", MessageBoxButton.OK, MessageBoxImage.Warning);
+            ShowDecoratedDialog(new UpdateDialog(
+                "检查更新失败",
+                "暂时无法获取最新版本。",
+                "请检查网络连接后重试。"));
         }
         finally
         {
@@ -347,45 +473,7 @@ public partial class MainWindow : Window
 
     private void About_Click(object sender, RoutedEventArgs e)
     {
-        // A separate transparent window covers both WPF chrome and WebView2.
-        // Changing the owner's Opacity corrupts the embedded browser composition.
-        var screenOrigin = PointToScreen(new Point(0, 0));
-        var deviceToDip = PresentationSource.FromVisual(this)?.CompositionTarget?.TransformFromDevice
-                          ?? Matrix.Identity;
-        var location = deviceToDip.Transform(screenOrigin);
-
-        var overlay = new Window
-        {
-            Owner = this,
-            WindowStartupLocation = WindowStartupLocation.Manual,
-            Left = location.X,
-            Top = location.Y,
-            Width = ActualWidth,
-            Height = ActualHeight,
-            WindowStyle = WindowStyle.None,
-            AllowsTransparency = true,
-            Background = Brushes.Transparent,
-            ShowInTaskbar = false,
-            ShowActivated = false,
-            ResizeMode = ResizeMode.NoResize,
-            Content = new System.Windows.Controls.Border
-            {
-                Background = new SolidColorBrush(Color.FromArgb(156, 0, 0, 0)),
-                CornerRadius = WindowState == WindowState.Maximized
-                    ? new CornerRadius(0)
-                    : new CornerRadius(10)
-            }
-        };
-
-        try
-        {
-            overlay.Show();
-            new AboutDialog { Owner = overlay }.ShowDialog();
-        }
-        finally
-        {
-            overlay.Close();
-        }
+        ShowDecoratedDialog(new AboutDialog());
     }
 
     private static void OpenExternal(string value)
