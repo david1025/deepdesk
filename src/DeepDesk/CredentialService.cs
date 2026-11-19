@@ -5,6 +5,9 @@ namespace DeepDesk;
 
 internal sealed class CredentialService
 {
+    // Credential bytes stay only in DPAPI storage; listeners receive status only.
+    public event Action<bool>? ConfigurationChanged;
+
     public bool Exists => File.Exists(AppPaths.ApiKeyFile);
 
     public void SaveApiKey(string apiKey)
@@ -15,6 +18,7 @@ internal sealed class CredentialService
         var encrypted = ProtectedData.Protect(Encoding.UTF8.GetBytes(apiKey.Trim()), null,
             DataProtectionScope.CurrentUser);
         File.WriteAllBytes(AppPaths.ApiKeyFile, encrypted);
+        ConfigurationChanged?.Invoke(true);
     }
 
     public string ReadApiKey()
@@ -28,5 +32,6 @@ internal sealed class CredentialService
     public void Clear()
     {
         if (Exists) File.Delete(AppPaths.ApiKeyFile);
+        ConfigurationChanged?.Invoke(false);
     }
 }

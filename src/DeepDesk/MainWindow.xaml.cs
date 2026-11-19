@@ -37,6 +37,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        _credentials.ConfigurationChanged += OnCredentialConfigurationChanged;
         Loaded += OnLoaded;
         LocationChanged += (_, _) => SyncFirstRunBackdrop();
         // Logging out or shutting down Windows must not be intercepted as a tray hide.
@@ -80,11 +81,39 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _credentials.ConfigurationChanged -= OnCredentialConfigurationChanged;
         if (_windowSource is not null)
             _windowSource.RemoveHook(WindowMessageHook);
         _tray?.Dispose();
         _tray = null;
         base.OnClosed(e);
+    }
+
+    // The encrypted credential file is authoritative. Notify the renderer only
+    // whether a key exists; never send the API Key itself to WebView2.
+    private void OnCredentialConfigurationChanged(bool configured)
+    {
+        if (!Dispatcher.CheckAccess())
+        {
+            Dispatcher.BeginInvoke(new Action(() => OnCredentialConfigurationChanged(configured)));
+            return;
+        }
+
+        try
+        {
+            Browser.CoreWebView2?.PostWebMessageAsJson(
+                System.Text.Json.JsonSerializer.Serialize(new
+                {
+                    type = "deepdesk-credentials-changed",
+                    configured
+                }));
+        }
+        catch (Exception ex)
+        {
+            // Never report a credential save as failed just because the UI
+            // is navigating, hidden, or shutting down.
+            RuntimeLog.Write($"Credential status sync failed: {ex.GetType().Name}");
+        }
     }
 
     private IntPtr WindowMessageHook(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool handled)

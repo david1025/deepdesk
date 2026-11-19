@@ -365,17 +365,29 @@ export const importHistory = (
 // ---------- Native DPAPI credential bridge and usage UI ----------
 {
   const file = 'src/services/native.ts'
-  await write(file, `type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
+  await write(file, `import { setApiKey, useSettings } from './settings.js'
+
+type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
+type CredentialChanged = { type: 'deepdesk-credentials-changed'; configured: boolean }
+type NativeMessage = NativeResponse | CredentialChanged
 
 declare global {
   interface Window {
-    chrome?: { webview?: { postMessage: (message: unknown) => void; addEventListener: (type: 'message', listener: (event: MessageEvent<NativeResponse>) => void) => void } }
+    chrome?: { webview?: { postMessage: (message: unknown) => void; addEventListener: (type: 'message', listener: (event: MessageEvent<NativeMessage>) => void) => void } }
   }
 }
 
 const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>()
+const NATIVE_KEY_MARKER = 'DEEPDESK_NATIVE_CREDENTIAL'
 let sequence = 0
 let listening = false
+let credentialRevision = 0
+
+// Only a marker is stored in renderer state; the secret remains encrypted in Windows DPAPI.
+const applyNativeCredentialStatus = (configured: boolean) => {
+  const next = configured ? NATIVE_KEY_MARKER : null
+  if (useSettings.getState().apiKey !== next) setApiKey(next)
+}
 
 export const nativeRequest = <T = Record<string, unknown>>(action: string, payload: Record<string, unknown> = {}): Promise<T> => {
   const webview = window.chrome?.webview
@@ -384,7 +396,13 @@ export const nativeRequest = <T = Record<string, unknown>>(action: string, paylo
     listening = true
     webview.addEventListener('message', (event) => {
       const message = event.data
-      if (!message || message.type !== 'response') return
+      if (!message) return
+      if (message.type === 'deepdesk-credentials-changed') {
+        credentialRevision++
+        applyNativeCredentialStatus(message.configured)
+        return
+      }
+      if (message.type !== 'response') return
       const task = pending.get(message.requestId)
       if (!task) return
       pending.delete(message.requestId)
@@ -402,12 +420,34 @@ export const nativeRequest = <T = Record<string, unknown>>(action: string, paylo
   })
 }
 
+// Startup reconciliation also corrects a stale marker from an earlier session.
+// An intervening credential event wins over an old getStatus response.
+if (window.chrome?.webview) {
+  const initialRevision = credentialRevision
+  void nativeRequest<{ apiKeyConfigured: boolean }>('app.getStatus')
+    .then(({ apiKeyConfigured }) => {
+      if (credentialRevision === initialRevision)
+        applyNativeCredentialStatus(apiKeyConfigured)
+    })
+    .catch(() => {})
+}
+
 export const saveNativeApiKey = (apiKey: string) => nativeRequest<{ saved: boolean }>('settings.saveApiKey', { apiKey })
 export const getNativeBalance = () => nativeRequest<{
   is_available: boolean
   balance_infos: Array<{ currency: 'CNY' | 'USD'; total_balance: string; granted_balance: string; topped_up_balance: string }>
 }>('api.getBalance')
 `)
+}
+
+{
+  const file = 'src/main.tsx'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "import { ensureKatex } from './services/markdown/katex.js'\n",
+    "import { ensureKatex } from './services/markdown/katex.js'\nimport './services/native.js'\n",
+    file)
+  await write(file, s)
 }
 
 {
