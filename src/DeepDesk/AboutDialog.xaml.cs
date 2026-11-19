@@ -82,7 +82,7 @@ public partial class AboutDialog : Window
 
     private void Close_Click(object sender, RoutedEventArgs e) => Close();
 
-    private static void GitHub_Click(object sender, RoutedEventArgs e)
+    private void GitHub_Click(object sender, RoutedEventArgs e)
     {
         Process.Start(new ProcessStartInfo(RepositoryUrl) { UseShellExecute = true });
     }
