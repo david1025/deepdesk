@@ -40,7 +40,7 @@ internal sealed class FirstRunDialog : Window
         _status.TextWrapping = TextWrapping.Wrap;
         panel.Children.Add(_status);
         var actions = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 22, 0, 0) };
-        var skip = new Button { Content = "稍后配置", Width = 94, Height = 34, Margin = new Thickness(0, 0, 10, 0), IsCancel = true };
+        var skip = new Button { Content = "稍后配置", Width = 94, Height = 34, Margin = new Thickness(0, 0, 10, 0) };
         skip.Click += (_, _) => { DialogResult = false; };
         _save.Content = "验证并保存";
         _save.Width = 110;
