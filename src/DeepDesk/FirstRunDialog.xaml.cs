@@ -11,7 +11,7 @@ public partial class FirstRunDialog : Window
     private readonly DeepSeekApiService _api;
     private bool _isSaving;
 
-    public FirstRunDialog(CredentialService credentials, DeepSeekApiService api)
+    internal FirstRunDialog(CredentialService credentials, DeepSeekApiService api)
     {
         InitializeComponent();
         _credentials = credentials;
