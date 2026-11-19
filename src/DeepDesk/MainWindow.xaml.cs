@@ -296,22 +296,20 @@ public partial class MainWindow : Window
                     return;
 
                 var text = JsonSerializer.Serialize(Clipboard.GetText());
-                script = $"""
-                    (() => {{
-                      const value = {text};
-                      const element = document.activeElement;
-                      if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {{
-                        const start = element.selectionStart ?? element.value.length;
-                        const end = element.selectionEnd ?? start;
-                        element.setRangeText(value, start, end, "end");
-                        element.dispatchEvent(new InputEvent("input", {{
-                          bubbles: true, inputType: "insertText", data: value
-                        }}));
-                      }} else if (element?.isContentEditable) {{
-                        document.execCommand("insertText", false, value);
-                      }}
-                    }})();
-                    """;
+                script = @"(() => {
+                  const value = " + text + @";
+                  const element = document.activeElement;
+                  if (element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement) {
+                    const start = element.selectionStart ?? element.value.length;
+                    const end = element.selectionEnd ?? start;
+                    element.setRangeText(value, start, end, ""end"");
+                    element.dispatchEvent(new InputEvent(""input"", {
+                      bubbles: true, inputType: ""insertText"", data: value
+                    }));
+                  } else if (element?.isContentEditable) {
+                    document.execCommand(""insertText"", false, value);
+                  }
+                })();";
             }
             else
             {
