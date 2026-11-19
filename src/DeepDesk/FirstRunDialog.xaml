@@ -5,9 +5,9 @@
         Width="620" Height="620" MinWidth="580" MinHeight="560"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         ResizeMode="NoResize" ShowInTaskbar="False"
-        WindowStartupLocation="CenterOwner" FontFamily="Segoe UI"
+        WindowStartupLocation="CenterOwner" FontFamily="Microsoft YaHei UI" FontSize="12"
         UseLayoutRounding="True" SnapsToDevicePixels="True"
-        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType">
+        TextOptions.TextFormattingMode="Display" TextOptions.TextRenderingMode="ClearType" TextOptions.TextHintingMode="Fixed">
   <Window.Resources>
     <SolidColorBrush x:Key="Ink" Color="#172033"/>
     <SolidColorBrush x:Key="Muted" Color="#667085"/>

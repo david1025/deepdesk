@@ -1,5 +1,15 @@
 <Application x:Class="DeepDesk.App" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" StartupUri="MainWindow.xaml">
   <Application.Resources>
     <SolidColorBrush x:Key="AccentBrush" Color="#2563EB"/>
+    <!-- Keep every native window on the same typography as the DeepDesk workspace. -->
+    <Style TargetType="{x:Type Window}">
+      <Setter Property="FontFamily" Value="Microsoft YaHei UI"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="UseLayoutRounding" Value="True"/>
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
+      <Setter Property="TextOptions.TextFormattingMode" Value="Display"/>
+      <Setter Property="TextOptions.TextRenderingMode" Value="ClearType"/>
+      <Setter Property="TextOptions.TextHintingMode" Value="Fixed"/>
+    </Style>
   </Application.Resources>
 </Application>

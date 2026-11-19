@@ -296,6 +296,14 @@ export const importHistory = (
   await write(file, s)
 }
 {
+  const file = 'src/app/theme.css'
+  let s = await read(file)
+  s = replaceOnce(s,
+    "  --dsw-font-family:\n    system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,\n    'Open Sans', 'Helvetica Neue', sans-serif;",
+    "  --dsw-font-family:\n    'Microsoft YaHei UI', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell,\n    'Open Sans', 'Helvetica Neue', sans-serif;", file)
+  await write(file, s)
+}
+{
   const file = 'src/i18n/zh.ts'
   let s = await read(file)
   s = replaceOnce(s, "  appName: 'API 使用 demo',", "  appName: 'DeepDesk',", file)
