@@ -16,6 +16,13 @@ JS 注入 `window.__DEEPSEEK_DESKTOP__={platform:'macos',bridgeVersion:1}` 和 `
 
 **注意**：`security.key.save` 已实现但原 chat-demo 前端尚未调用。把密钥写入 Keychain 本身不代表已杜绝其原本的 `localStorage` 路径。
 
+## 附件预览 v1（macOS）
+
+支持的宿主在 `__DEEPSEEK_DESKTOP__` 中额外声明 `attachmentPreviewVersion: 1`。
+`attachment.previewPDF.v1` 接受 `{blobUrl, name}`，PDFKit 显示后返回 `{opened: true}`。
+仅允许可信主 frame 的本地对象 URL，附件上限为 64 MiB。没有此能力声明的旧宿主仍使用原 Bridge v1；
+新前端在旧宿主上给出 PDF 无法预览提示，升级 Mac 应用会同时更新宿主及内置前端。图片在 Web UI 内放大。
+
 ## V1 必须补全的接口
 
 | 命令 | 请求 | 返回 | 约束 |

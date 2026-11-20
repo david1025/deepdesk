@@ -12,6 +12,7 @@ export type NativeMethod =
   | 'import.pickArchive' | 'import.reportResult'
   | 'updater.check'
   | 'window.new' | 'window.setTitle'
+  | 'attachment.previewPDF.v1'
   // T06 存储面（macOS 端已实现；浏览器/Windows 宿主无此通道，前端经 getMode 分流）
   | 'storage.getMode' | 'storage.stats'
   | 'storage.listSummaries' | 'storage.loadSession' | 'storage.saveSession'
@@ -29,6 +30,13 @@ export type NativeMethod =
   // 以下协议已设计，macOS 端尚未实现；不得在前端假装成功：
   | 'file.pick' | 'file.save' | 'file.openDirectory'
   | 'sync.pair' | 'sync.status' | 'sync.start' | 'sync.stop';
+
+export interface AttachmentPDFPreviewParams {
+  blobUrl: string
+  name: string
+}
+
+export interface AttachmentPDFPreviewResult { opened: true }
 
 /** network.request 的 operation 白名单（URL 固定为 https://api.deepseek.com 下的路径） */
 export type NetworkOperation =

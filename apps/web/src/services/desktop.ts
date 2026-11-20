@@ -7,7 +7,7 @@ type NativeBridgeCall = (method: string, params?: Record<string, unknown>) => Pr
 declare global {
   interface Window {
     /** macOS 宿主在文档开始前注入的能力声明 */
-    __DEEPSEEK_DESKTOP__?: { platform: 'macos'; bridgeVersion: number }
+    __DEEPSEEK_DESKTOP__?: { platform: 'macos'; bridgeVersion: number; attachmentPreviewVersion?: number }
     /** macOS Native Bridge v1：contracts/bridge-v1.d.ts */
     deepseekNativeCall?: NativeBridgeCall
     /** 原生存储迁移入口（原生设置界面驱动，见 migrateStorage.ts） */
@@ -63,4 +63,12 @@ export const notifyHistoryImportResult = (
     success,
     ...(success ? { result } : { error }),
   })
+}
+
+/** PDFKit 需要同一页面创建的 blob URL，宿主不会读取外部地址或本机路径。 */
+export const previewMacPDF = async (blobUrl: string, name: string): Promise<void> => {
+  if (window.__DEEPSEEK_DESKTOP__?.attachmentPreviewVersion !== 1 || !window.deepseekNativeCall) {
+    throw new Error('PDF preview unavailable')
+  }
+  await window.deepseekNativeCall('attachment.previewPDF.v1', { blobUrl, name })
 }

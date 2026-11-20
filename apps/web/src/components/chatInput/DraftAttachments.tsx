@@ -1,10 +1,13 @@
 import clsx from 'clsx'
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { useUploads, type UploadTask } from '../../services/attachments.js'
+import { getFileExt, useUploads, type UploadTask } from '../../services/attachments.js'
+import { isMacDesktop, previewMacPDF } from '../../services/desktop.js'
 import type { DraftAttachment } from '../../services/chat/drafts.js'
 import { IconCloseFill14, IconRefreshOutline16 } from '../base/icons.js'
 import { Tooltip } from '../base/Tooltip.js'
+import { showToast } from '../base/toastState.js'
+import { AttachmentImagePreview } from '../files/AttachmentImagePreview.js'
 import { FileCard } from '../files/FileCard.js'
 import styles from './ChatInput.module.css'
 
@@ -48,6 +51,8 @@ const AttachmentItem = ({
   onRemove: () => void
 }) => {
   const t = useTranslate()
+  const [previewing, setPreviewing] = useState(false)
+  const mac = isMacDesktop()
   const task = useUploads((state) => state.tasks[item.id] ?? UPLOADING)
   const status = task.status
   const error = task.status === 'error' ? t(task.error.key, task.error.params) : undefined
@@ -62,7 +67,22 @@ const AttachmentItem = ({
       className={clsx(styles.attachment, failed && styles.attachmentFailed)}
       title={error ?? item.file.name}
     >
-      <img src={item.previewUrl} alt={item.file.name} />
+      {mac && status === 'done' ? (
+        <button
+          type="button"
+          className={styles.attachmentPreviewButton}
+          onClick={() => setPreviewing(true)}
+        >
+          <img src={item.previewUrl} alt={item.file.name} />
+        </button>
+      ) : <img src={item.previewUrl} alt={item.file.name} />}
+      {previewing && (
+        <AttachmentImagePreview
+          url={item.previewUrl}
+          name={item.file.name}
+          onClose={() => setPreviewing(false)}
+        />
+      )}
       {status === 'uploading' ? <div className={styles.uploading} /> : null}
       {failed && retry ? (
         <Tooltip content={retryLabel}>
@@ -94,6 +114,12 @@ const AttachmentItem = ({
       error={error}
       onRetry={retry}
       onRemove={onRemove}
+      onOpen={mac && getFileExt(item.file.name) === 'pdf' ? () => {
+        const blobUrl = URL.createObjectURL(item.file)
+        void previewMacPDF(blobUrl, item.file.name)
+          .catch(() => showToast({ type: 'error', key: 'attachmentPreviewFailed' }))
+          .finally(() => URL.revokeObjectURL(blobUrl))
+      } : undefined}
     />
   )
 }

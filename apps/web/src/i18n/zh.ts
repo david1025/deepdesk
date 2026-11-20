@@ -147,6 +147,8 @@ export const zh = {
   upload: '上传',
   uploadUnsupportedFormat:
     '上传的文件包含暂未支持的文件格式，请转换文件格式后重试。支持 PDF、DOC、XLSX、PPT、图片、文本、代码等。',
+  attachmentPreviewFailed: '无法预览此附件',
+  attachmentOriginalMissing: '此附件的本地原件已缺失',
   uploadFileStatusFailed: '上传失败',
   uploadRetry: '{message}，点击重试',
   chatInputPlaceholderChat: '请输入消息',

@@ -25,7 +25,7 @@ struct WebContainerView: NSViewRepresentable {
 
         // 文档开始前注入：能力声明 + Bridge 封装 + 旧 localStorage 明文密钥一次性迁入 Keychain
         let injectedScript = """
-        window.__DEEPSEEK_DESKTOP__ = Object.freeze({ platform: 'macos', bridgeVersion: 1 });
+        window.__DEEPSEEK_DESKTOP__ = Object.freeze({ platform: 'macos', bridgeVersion: 1, attachmentPreviewVersion: 1 });
         window.deepseekNativeCall = async function(method, params = {}) {
           const handler = window.webkit?.messageHandlers?.nativeBridge;
           if (!handler) throw new Error('nativeBridge unavailable');
@@ -151,101 +151,17 @@ struct WebContainerView: NSViewRepresentable {
             decisionHandler(.allow)
         }
 
-        // MARK: blob 附件行内预览（对齐 Windows 版 lightbox 行为）
+        // MARK: 外部链接
 
         func webView(_ webView: WKWebView,
                      createWebViewWith configuration: WKWebViewConfiguration,
                      for navigationAction: WKNavigationAction,
                      windowFeatures: WKWindowFeatures) -> WKWebView? {
             guard let url = navigationAction.request.url else { return nil }
-            if url.isFileURL || url.scheme == "blob" {
-                showInlinePreview(url: url.absoluteString)
-                return nil
-            }
             if url.scheme == "https" || url.scheme == "http" {
                 NSWorkspace.shared.open(url)
             }
             return nil
-        }
-
-        private func showInlinePreview(url: String) {
-            guard let view = view else { return }
-            let script = """
-            (async () => {
-              const fileUrl = fileUrlArg;
-              const id = 'deepdesk-file-lightbox';
-              document.getElementById(id)?.querySelector('[data-close-preview]')?.click();
-              let type = '';
-              try {
-                const response = await fetch(fileUrl);
-                if (!response.ok) return;
-                type = (response.headers.get('content-type') || '').split(';')[0].trim().toLowerCase();
-                await response.body?.cancel();
-              } catch { return; }
-              if (type !== 'application/pdf' && !type.startsWith('image/')) return;
-              const overlay = document.createElement('div');
-              overlay.id = id;
-              Object.assign(overlay.style, {
-                position: 'fixed', inset: '0', zIndex: '2147483647',
-                background: 'rgba(10, 12, 17, 0.92)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center',
-                boxSizing: 'border-box', padding: '48px 28px 28px'
-              });
-              const previousOverflow = document.body.style.overflow;
-              document.body.style.overflow = 'hidden';
-              const close = () => {
-                document.removeEventListener('keydown', onKeyDown, true);
-                overlay.remove();
-                document.body.style.overflow = previousOverflow;
-              };
-              const onKeyDown = event => {
-                if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); close(); }
-              };
-              const button = document.createElement('button');
-              button.type = 'button';
-              button.dataset.closePreview = '';
-              button.setAttribute('aria-label', '关闭预览');
-              button.title = '关闭预览 (Esc)';
-              button.textContent = '×';
-              Object.assign(button.style, {
-                position: 'absolute', right: '20px', top: '16px', width: '36px', height: '36px',
-                border: '0', borderRadius: '18px', background: 'rgba(255, 255, 255, 0.16)',
-                color: '#fff', fontSize: '26px', lineHeight: '34px', cursor: 'pointer',
-                fontFamily: 'system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center'
-              });
-              button.addEventListener('click', close);
-              overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
-              overlay.append(button);
-              if (type === 'application/pdf') {
-                const pdf = document.createElement('object');
-                pdf.data = fileUrl;
-                pdf.type = 'application/pdf';
-                pdf.setAttribute('aria-label', 'PDF 预览');
-                Object.assign(pdf.style, { border: '0', width: 'min(100%, 1150px)', height: '100%', background: '#fff', borderRadius: '8px' });
-                overlay.append(pdf);
-              } else {
-                const image = document.createElement('img');
-                image.src = fileUrl;
-                image.alt = '附件图片预览';
-                Object.assign(image.style, {
-                  display: 'block', maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto',
-                  objectFit: 'contain', boxShadow: '0 10px 38px rgba(0, 0, 0, 0.35)'
-                });
-                overlay.append(image);
-              }
-              document.addEventListener('keydown', onKeyDown, true);
-              document.body.append(overlay);
-              button.focus();
-            })();
-            """
-            Task {
-                try? await view.callAsyncJavaScript(
-                    script,
-                    arguments: ["fileUrlArg": url],
-                    in: nil,
-                    contentWorld: .page
-                )
-            }
         }
 
         // MARK: 下载 / 文件选择 / 权限

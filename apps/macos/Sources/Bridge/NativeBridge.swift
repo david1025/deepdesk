@@ -9,6 +9,7 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
     private let environment: AppEnvironment
     private weak var webView: WKWebView?
     private var importInFlight = false
+    private var pdfPreviewInFlight = false
 
     init(environment: AppEnvironment, webView: WKWebView?) {
         self.environment = environment
@@ -185,6 +186,16 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
             }
             environment.network.cancelUpload(id: uploadId)
             return ["cancelled": true]
+        case "attachment.previewPDF.v1":
+            guard let webView, let window = webView.window,
+                  let blobUrl = params["blobUrl"] as? String, let name = params["name"] as? String,
+                  !pdfPreviewInFlight, window.attachedSheet == nil else {
+                throw BridgeError.invalidParameter("PDF 预览参数无效，或窗口正显示其他表单。")
+            }
+            pdfPreviewInFlight = true
+            defer { pdfPreviewInFlight = false }
+            try await AttachmentPDFPreview.open(blobURL: blobUrl, name: name, in: webView, window: window)
+            return ["opened": true]
         // ---- 历史导入 ----
         case "import.pickArchive":
             guard let webView, !importInFlight else {

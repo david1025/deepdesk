@@ -59,6 +59,14 @@ export const FileCard = ({
           : name
       }
       onClick={onClick}
+      role={onClick && !onRemove ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(event) => {
+        if (onClick && event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+          event.preventDefault()
+          onClick()
+        }
+      }}
     >
       <div className={clsx(styles.icon, status === 'error' && onRetry && styles.retry)}>{icon}</div>
       <div className={styles.content}>

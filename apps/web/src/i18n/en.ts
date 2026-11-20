@@ -155,6 +155,8 @@ export const en = {
   upload: 'Upload',
   uploadUnsupportedFormat:
     'The selected files include unsupported formats. Please convert them and try again. Supported: PDF, DOC, XLSX, PPT, images, text, code, and more.',
+  attachmentPreviewFailed: 'Could not preview this attachment',
+  attachmentOriginalMissing: 'The original attachment is unavailable on this device',
   uploadFileStatusFailed: 'Upload failed',
   uploadRetry: '{message}. Click to retry',
   chatInputPlaceholderChat: 'Enter a message',

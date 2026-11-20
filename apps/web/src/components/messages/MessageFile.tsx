@@ -1,11 +1,14 @@
 import clsx from 'clsx'
 import { useEffect, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
-import { useUploads } from '../../services/attachments.js'
+import { getFileExt, useUploads } from '../../services/attachments.js'
 import { loadFile } from '../../services/chat/db.js'
+import { isMacDesktop, previewMacPDF } from '../../services/desktop.js'
 import type { FileAttachment } from '../../services/chat/types.js'
 import { IconPhotoErrorFill20, IconRefreshOutline16 } from '../base/icons.js'
 import { Tooltip } from '../base/Tooltip.js'
+import { showToast } from '../base/toastState.js'
+import { AttachmentImagePreview } from '../files/AttachmentImagePreview.js'
 import { FileCard } from '../files/FileCard.js'
 import styles from './MessageFile.module.css'
 
@@ -15,7 +18,7 @@ const useFileUrl = (id: string) => {
   useEffect(() => {
     let objectUrl: string | null = null
     let cancelled = false
-    loadFile(id).then((blob) => {
+    loadFile(id).catch(() => null).then((blob) => {
       if (!cancelled) {
         objectUrl = blob ? URL.createObjectURL(blob) : null
         setFileUrl({ id, url: objectUrl })
@@ -57,6 +60,8 @@ export const MessageFile = ({
 }) => {
   const t = useTranslate()
   const url = useFileUrl(file.id)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const mac = isMacDesktop()
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const upload = useUploadState(file)
   const uploading = upload?.status === 'uploading'
@@ -134,7 +139,28 @@ export const MessageFile = ({
       )
     }
 
-    // 正常态：链接到原件
+    if (mac && url) {
+      return (
+        <>
+          <button
+            type="button"
+            className={clsx(styles.image, styles.imageThumb, styles.previewButton)}
+            title={file.name}
+            onClick={() => {
+              if (failedUrl === url) showToast({ type: 'error', key: 'attachmentPreviewFailed' })
+              else setPreviewUrl(url)
+            }}
+          >
+            {preview}
+          </button>
+          {previewUrl === url && (
+            <AttachmentImagePreview url={url} name={file.name} onClose={() => setPreviewUrl(null)} />
+          )}
+        </>
+      )
+    }
+
+    // 浏览器和 Windows 继续使用原有链接行为。
     return url ? (
       <a
         className={clsx(styles.image, styles.imageThumb)}
@@ -151,6 +177,17 @@ export const MessageFile = ({
     )
   }
 
+  let openFile: (() => void) | undefined
+  if (!upload && mac && url === null) {
+    openFile = () => showToast({ type: 'error', key: 'attachmentOriginalMissing' })
+  } else if (!upload && url) {
+    openFile = mac && getFileExt(file.name) === 'pdf'
+      ? () => void previewMacPDF(url, file.name).catch(() => {
+          showToast({ type: 'error', key: 'attachmentPreviewFailed' })
+        })
+      : () => window.open(url, '_blank', 'noreferrer')
+  }
+
   return (
     <FileCard
       name={file.name}
@@ -158,7 +195,7 @@ export const MessageFile = ({
       status={uploading ? 'uploading' : failed ? 'error' : 'done'}
       error={errorText}
       onRetry={retry ?? undefined}
-      onOpen={url && !upload ? () => window.open(url, '_blank', 'noreferrer') : undefined}
+      onOpen={openFile}
     />
   )
 }
