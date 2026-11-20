@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "DeepSeek LAN Sync Envelope v1 (draft - implement and test before shipping)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol", "version", "deviceId", "requestId", "type", "payload"],
+  "properties": {
+    "protocol": {"const": "deepseek-lan-sync"},
+    "version": {"const": 1},
+    "deviceId": {"type": "string", "minLength": 16},
+    "requestId": {"type": "string", "minLength": 8},
+    "type": {"enum": ["hello", "pair", "manifest", "changes", "blob", "ack", "error"]},
+    "payload": {"type": "object"}
+  }
+}

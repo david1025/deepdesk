@@ -1,0 +1,27 @@
+.sessionUsage { display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:16px; padding:5px 10px 0; color:var(--dsw-alias-label-tertiary); font-size:12px; line-height:18px; user-select:none; }
+.metric { position:relative; display:inline-flex; align-items:center; }
+.metricButton { padding:0; border:0; background:transparent; color:inherit; font:inherit; cursor:pointer; white-space:nowrap; }
+.metricButton:hover,.metricButton:focus-visible { color:var(--dsw-alias-label-primary); outline:none; }
+.metricPopover { position:absolute; z-index:1200; left:50%; bottom:calc(100% + 9px); transform:translateX(-50%); width:max-content; min-width:218px; max-width:min(280px,calc(100vw - 24px)); box-sizing:border-box; padding:12px 13px; border:1px solid var(--dsw-alias-border-l2); border-radius:12px; background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 6px 24px rgba(0,0,0,.12); font-size:12px; line-height:18px; user-select:text; }
+.metricTitle { display:block; margin-bottom:7px; font-weight:600; }
+.metricDetail { display:flex; justify-content:space-between; gap:18px; padding:3px 0; color:var(--dsw-alias-label-secondary); }
+.metricDetail strong { color:var(--dsw-alias-label-primary); font-weight:500; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.accountUsage { position:relative; display:flex; align-items:center; margin:auto 0; }
+.balanceButton { display:flex; align-items:center; gap:7px; min-height:34px; padding:0 10px; border:1px solid var(--dsw-alias-border-l2); border-radius:18px; color:var(--dsw-alias-label-primary); background:var(--dsw-specific-sidebar-fill); font:inherit; font-size:12px; cursor:pointer; white-space:nowrap; }
+.walletIcon { color:var(--dsw-alias-brand-text); }
+.balancePopover { position:absolute; z-index:1000; left:0; bottom:calc(100% + 8px); width:286px; padding:14px; border:1px solid var(--dsw-alias-border-l2); border-radius:14px; background:var(--dsw-alias-bg-layer-3); color:var(--dsw-alias-label-primary); box-shadow:0 8px 32px rgba(0,0,0,.14); font-size:12px; }
+.popoverHeader,.balanceSplit,.popoverFoot { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.popoverHeader span { color:var(--dsw-alias-label-tertiary); }
+.balanceAmount { margin:10px 0 12px; font-size:25px; font-weight:650; font-variant-numeric:tabular-nums; }
+.balanceSplit { padding:5px 0; color:var(--dsw-alias-label-secondary); }
+.balanceSplit b { color:var(--dsw-alias-label-primary); font-weight:550; font-variant-numeric:tabular-nums; }
+.popoverDivider { height:1px; margin:9px 0; background:var(--dsw-alias-border-l1); }
+.popoverFoot { margin-top:10px; }
+.popoverFoot small,.estimateNote { color:var(--dsw-alias-label-tertiary); font-size:10px; line-height:1.5; }
+.popoverFoot button { border:0; background:none; color:var(--dsw-alias-brand-text); cursor:pointer; }
+.popoverFoot button:disabled { opacity:.5; cursor:default; }
+.balanceError { color:var(--dsw-alias-state-error-primary); }
+.estimateNote { display:block; margin-top:8px; }
+/* 桥接浮窗与触发按钮之间的空隙：鼠标穿过空隙时不脱离 hover 区域（否则 mouseleave 立即关浮窗） */
+.balancePopover::before { content:''; position:absolute; left:0; right:0; top:-12px; height:14px; }
+.metricPopover::before { content:''; position:absolute; left:0; right:0; top:-11px; height:13px; }

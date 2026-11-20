@@ -1,7 +1,7 @@
 name: Windows build
 on:
   push:
-    branches: [main, "feature/**"]
+    branches: [main, "feature/**", "integration/**"]
   pull_request:
     branches: [main, "feature/windows-native-shell"]
   workflow_dispatch:
@@ -16,14 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Checkout official DeepSeek Chat Demo
-        uses: actions/checkout@v4
-        with:
-          repository: deepseek-ai/chat-demo
-          ref: 429af5a4558469496b231631e850fbccc0c30c87
-          path: vendor/chat-demo
-          persist-credentials: false
-
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 10.0.x
@@ -36,56 +28,23 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install official UI dependencies
-        working-directory: vendor/chat-demo
-        run: pnpm install --frozen-lockfile
+      - name: Install shared UI dependencies
+        run: pnpm --dir apps/web install --frozen-lockfile
 
-      - name: Patch official UI for DeepDesk desktop features
-        run: node scripts/patch-chat-demo.mjs vendor/chat-demo
+      - name: Type-check shared UI
+        run: pnpm --dir apps/web type
 
-      - name: Type-check official UI
-        working-directory: vendor/chat-demo
-        shell: pwsh
-        run: |
-          pnpm type 2>&1 | Tee-Object -FilePath typecheck.log
-          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-      - name: Upload type-check diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: deepdesk-typecheck-diagnostics
-          path: vendor/chat-demo/typecheck.log
-          if-no-files-found: ignore
-          retention-days: 7
-
-      - name: Build official DeepSeek UI
-        working-directory: vendor/chat-demo
-        shell: pwsh
-        env:
-          NODE_ENV: production
-        run: |
-          if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
-          pnpm exec rspack build -c rspack.config.ts
-
-      - name: Stage official UI into desktop host
-        shell: pwsh
-        run: |
-          if (Test-Path "src/chat-ui/dist") { Remove-Item "src/chat-ui/dist" -Recurse -Force }
-          New-Item -ItemType Directory -Force "src/chat-ui/dist" | Out-Null
-          Copy-Item "vendor/chat-demo/dist/*" "src/chat-ui/dist/" -Recurse -Force
-          Copy-Item "vendor/chat-demo/LICENSE" "src/chat-ui/dist/LICENSE" -Force
-          Copy-Item "src/DeepDesk/Assets/deepdesk-logo.png" "src/chat-ui/dist/deepdesk-logo.png" -Force
-          Set-Content -Path "src/chat-ui/dist/UPSTREAM_VERSION.txt" -Value "deepseek-ai/chat-demo@429af5a4558469496b231631e850fbccc0c30c87"
+      - name: Build shared UI
+        run: pnpm --dir apps/web build
 
       - name: Build WPF host
-        run: dotnet build src/DeepDesk/DeepDesk.csproj -c Release
+        run: dotnet build apps/windows/src/DeepDesk/DeepDesk.csproj -c Release
 
       - name: Publish lightweight Windows x64 app
-        run: dotnet publish src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/DeepDesk-win-x64-lite
+        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/DeepDesk-win-x64-lite
 
       - name: Publish self-contained Windows x64 app
-        run: dotnet publish src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/DeepDesk-win-x64
+        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/DeepDesk-win-x64
 
       - name: Install Inno Setup
         shell: pwsh
@@ -98,7 +57,7 @@ jobs:
       - name: Compile Windows installer
         shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer/DeepDesk.iss
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" apps/windows/installer/DeepDesk.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Upload Windows installer

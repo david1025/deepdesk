@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>com.apple.security.app-sandbox</key><false/>
+  <!-- 首版 Developer ID 独立分发；如改为 sandbox 发布，需重新设计存储/网络/Keychain 权限。 -->
+</dict></plist>
