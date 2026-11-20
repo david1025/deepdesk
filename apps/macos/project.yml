@@ -16,7 +16,7 @@ settings:
 packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
-    from: 2.7.0
+    exactVersion: 2.10.1
 targets:
   DeepSeekMac:
     type: application
@@ -27,10 +27,15 @@ targets:
       - path: Resources/Web
         type: folder
         buildPhase: resources
+      - path: ../../licenses/Sparkle-LICENSE
+        buildPhase: resources
       - path: Resources/AppIcon.icns
         buildPhase: resources
       - path: Config/AppIcon.xcassets
         buildPhase: resources
+    configFiles:
+      Debug: Config/Version.generated.xcconfig
+      Release: Config/Version.generated.xcconfig
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.example.deepseekmac
@@ -38,8 +43,7 @@ targets:
         INFOPLIST_FILE: Config/Info.plist
         CODE_SIGN_ENTITLEMENTS: Config/DeepSeekMac.entitlements
         GENERATE_INFOPLIST_FILE: NO
-        MARKETING_VERSION: 1.0.0
-        CURRENT_PROJECT_VERSION: 1
+        CURRENT_PROJECT_VERSION: 3
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: YES
       configs:

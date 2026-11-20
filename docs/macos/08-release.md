@@ -6,15 +6,15 @@ Mac 安装 Xcode / Xcode Command Line Tools / Homebrew / XcodeGen；终端执行
 
 ```bash
 brew install xcodegen
-# 将 Windows 自定义版 Web 源码放入 apps/web 后：
-./scripts/build-web.sh
 ./scripts/bootstrap-macos.sh
-open apps/macos/DeepSeekMac.xcodeproj
+open artifacts/macos/Build/Products/Debug/DeepSeek.app
 ```
 
 Debug 的 Bundle ID `com.example.deepseekmac` 是占位，务必在发布前设定正式 ID，并在后续版本中保持稳定。
 
 ## 2. 正式 Release 前必改
+
+桌面发布版本由仓库根目录的 [`VERSION`](../../VERSION) 提供。macOS 的 `CFBundleShortVersionString` 使用数字部分，`DeepDeskReleaseVersion` 保留完整版本。分发新构建前递增 `CURRENT_PROJECT_VERSION`。更新 Sparkle 时，同时更新 [随包分发的许可声明](../../licenses/Sparkle-LICENSE)。
 
 - apps/macos/project.yml：Bundle ID、产品显示名称、组织 Team、签名配置、`CODE_SIGNING_ALLOWED` Release。
 - apps/macos/Config/Info.plist：`SUFeedURL` 和真实 `SUPublicEDKey`、权限文案、关于和版权信息；不要把私钥写进任何 plist。
@@ -26,8 +26,9 @@ Debug 的 Bundle ID `com.example.deepseekmac` 是占位，务必在发布前设�
 ## 3. 发布命令参考（由签名机器执行）
 
 ```bash
-cd macos
-xcodegen generate --spec project.yml
+./scripts/build-web.sh
+./scripts/generate-macos-project.sh
+cd apps/macos
 xcodebuild -project DeepSeekMac.xcodeproj -scheme DeepSeekMac \
   -configuration Release -destination 'generic/platform=macOS' \
   -archivePath "$PWD/build/DeepSeek.xcarchive" archive
@@ -58,7 +59,7 @@ Sparkle 文档：https://sparkle-project.org/documentation/ 。
 
 ## 6. 发布前最终清单
 
-- [ ] `docs/06-v1-acceptance.md` 全部真实测试通过
+- [ ] [V1 验收清单](06-v1-acceptance.md) 全部真实测试通过
 - [ ] 软件许可（MIT/第三方）与产品命名/Logo 权益已核对
 - [ ] Apple Developer ID 签名/公证已验证
 - [ ] 生产 API base URL / Keychain / 同步身份稳定

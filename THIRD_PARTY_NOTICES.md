@@ -2,12 +2,14 @@
 
 ## DeepSeek chat-demo
 
-The project plans to adapt components from [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), licensed under the MIT License.
-
-The upstream repository's copyright and MIT license notice must be retained with any source files copied into this repository and included in redistributed builds. The shared UI in [apps/web](apps/web/) includes DeepSeek chat-demo source. The upstream [MIT license](apps/web/LICENSE) is copied into both desktop builds.
+DeepDesk adapts the React and TypeScript interface from [DeepSeek chat-demo](https://github.com/deepseek-ai/chat-demo), copyright © 2026 DeepSeek. The upstream [MIT license and copyright notice](apps/web/LICENSE) accompany both desktop builds. The [DeepDesk MIT license](LICENSE) is included separately as `DeepDesk-LICENSE`.
 
 ## Microsoft WebView2
 
-Microsoft.Web.WebView2 is distributed under its own license and notices. See the NuGet package metadata and Microsoft documentation.
+Windows builds use the [Microsoft.Web.WebView2 NuGet package](https://www.nuget.org/packages/Microsoft.Web.WebView2/). The loader and the Microsoft Edge WebView2 Runtime are subject to their respective Microsoft license terms.
 
-All transitive dependencies retain their respective licenses.
+## Sparkle
+
+macOS builds use [Sparkle](https://github.com/sparkle-project/Sparkle). Its [license and third-party notices](licenses/Sparkle-LICENSE) are included in the macOS app.
+
+Other dependencies retain their respective licenses.

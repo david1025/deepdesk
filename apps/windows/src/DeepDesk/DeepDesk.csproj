@@ -8,8 +8,9 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\deepdesk-icon.ico</ApplicationIcon>
-    <Version>0.2.0-preview.3</Version>
-    <InformationalVersion>0.2.0-preview.3</InformationalVersion>
+    <Version>$([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory)../../../../VERSION').Trim())</Version>
+    <InformationalVersion>$(Version)</InformationalVersion>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <AssemblyName>DeepDesk</AssemblyName>
     <RootNamespace>DeepDesk</RootNamespace>
   </PropertyGroup>

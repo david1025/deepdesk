@@ -61,7 +61,9 @@ final class AppEnvironment: ObservableObject {
     }
 
     var version: String {
-        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "开发版"
+        Bundle.main.infoDictionary?["DeepDeskReleaseVersion"] as? String
+            ?? Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+            ?? "开发版"
     }
 
     var build: String {

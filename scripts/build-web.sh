@@ -5,5 +5,6 @@ cd "$ROOT/apps/web"
 [[ -f package.json ]] || { echo 'Copy customized Windows web frontend into apps/web first.' >&2; exit 2; }
 command -v pnpm >/dev/null || { echo 'Install Node 22.12+ and pnpm' >&2; exit 2; }
 pnpm install --frozen-lockfile
+pnpm type
 pnpm build
 "$ROOT/scripts/install-web-dist.sh" "$ROOT/apps/web/dist"

@@ -16,14 +16,14 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build and stage shared UI
-        run: ./scripts/build-web.sh
       - name: Install XcodeGen
         run: brew install xcodegen
-      - name: Generate Xcode project
-        run: cd apps/macos && xcodegen generate --spec project.yml
       - name: Build unsigned app
+        run: ./scripts/bootstrap-macos.sh
+      - name: Verify bundled release version
         run: |
-          xcodebuild -resolvePackageDependencies -project apps/macos/DeepSeekMac.xcodeproj -scheme DeepSeekMac
-          xcodebuild -project apps/macos/DeepSeekMac.xcodeproj -scheme DeepSeekMac -configuration Debug -destination 'platform=macOS' CODE_SIGNING_ALLOWED=NO build
-      # 发布签名、公证与 Sparkle 需要专门配置的 GitHub Actions Secrets，参见 docs/08-release.md。
+          plist=artifacts/macos/Build/Products/Debug/DeepSeek.app/Contents/Info.plist
+          expected="$(cat VERSION)"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :DeepDeskReleaseVersion' "$plist")" = "$expected"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")" = "${expected%%-*}"
+      # 发布签名、公证与 Sparkle 需要专门配置的 GitHub Actions Secrets，参见 docs/macos/08-release.md。

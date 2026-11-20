@@ -7,9 +7,7 @@ import { rspack, type Configuration } from '@rspack/core'
 const dev = process.env.NODE_ENV !== 'production'
 const targets = ['chrome >= 105', 'edge >= 105', 'safari >= 16', 'firefox >= 110']
 const root = path.dirname(fileURLToPath(import.meta.url))
-const { version } = JSON.parse(
-  readFileSync(new URL('./package.json', import.meta.url), 'utf8')
-) as { version: string }
+const version = readFileSync(new URL('../../VERSION', import.meta.url), 'utf8').trim()
 
 const cssLoader = {
   loader: 'builtin:lightningcss-loader',
@@ -84,6 +82,8 @@ export const createConfig = ({
     new rspack.CopyRspackPlugin({
       patterns: [
         { from: path.resolve(root, 'LICENSE'), to: 'LICENSE', toType: 'file' },
+        { from: path.resolve(root, '../../LICENSE'), to: 'DeepDesk-LICENSE', toType: 'file' },
+        { from: path.resolve(root, '../../THIRD_PARTY_NOTICES.md'), to: 'THIRD_PARTY_NOTICES.md', toType: 'file' },
         // public/ 静态资产（deepdesk-logo.png 等）原样拷到 dist 根目录
         { from: path.resolve(root, 'public'), to: '.', noErrorOnMissing: true },
       ],

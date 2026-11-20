@@ -29,3 +29,4 @@ DerivedData/
 *.keystore
 *.p12
 *.pfx
+/apps/macos/Config/Version.generated.xcconfig

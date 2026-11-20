@@ -1,6 +1,13 @@
 #define MyAppName "DeepDesk"
-#define MyAppVersion "0.2.0"
-#define MyAppDisplayVersion "0.2.0 Preview 3"
+#define VersionFile FileOpen(AddBackslash(SourcePath) + "..\..\..\VERSION")
+#define MyAppVersion FileRead(VersionFile)
+#call FileClose(VersionFile)
+#define PrereleaseSeparator Pos("-", MyAppVersion)
+#if PrereleaseSeparator > 0
+  #define NumericAppVersion Copy(MyAppVersion, 1, PrereleaseSeparator - 1)
+#else
+  #define NumericAppVersion MyAppVersion
+#endif
 #define MyAppPublisher "DeepDesk Contributors"
 #define MyAppExeName "DeepDesk.exe"
 
@@ -9,7 +16,9 @@
 AppId={{A34E6F7D-8B1B-4C6F-A4E5-5F4E7B1A9C21}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppVerName={#MyAppName} {#MyAppDisplayVersion}
+VersionInfoVersion={#NumericAppVersion}
+VersionInfoProductTextVersion={#MyAppVersion}
+AppVerName={#MyAppName} {#MyAppVersion}
 AppPublisher={#MyAppPublisher}
 AppPublisherURL=https://github.com/david1025/deepdesk
 AppSupportURL=https://github.com/david1025/deepdesk/issues
@@ -17,7 +26,7 @@ DefaultDirName={localappdata}\Programs\DeepDesk
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\..\..\artifacts\installer
-OutputBaseFilename=DeepDesk-Setup-0.2.0-preview.3-x64
+OutputBaseFilename=DeepDesk-Setup-{#MyAppVersion}-x64
 ArchitecturesInstallIn64BitMode=x64
 ArchitecturesAllowed=x64
 Compression=lzma2

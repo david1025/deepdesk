@@ -136,7 +136,9 @@ final class DiagnosticsService {
         let processInfo = ProcessInfo.processInfo
         let osVersion = processInfo.operatingSystemVersionString
         let bundle = Bundle.main
-        let version = bundle.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
+        let version = bundle.infoDictionary?["DeepDeskReleaseVersion"] as? String
+            ?? bundle.infoDictionary?["CFBundleShortVersionString"] as? String
+            ?? "?"
         let build = bundle.infoDictionary?["CFBundleVersion"] as? String ?? "?"
         return """
         DeepSeek for Mac 诊断信息

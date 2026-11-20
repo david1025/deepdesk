@@ -12,12 +12,12 @@ internal static class UpdateService
     public static string CurrentVersion =>
         Assembly.GetEntryAssembly()?.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
         ?? Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3)
-        ?? "0.2.0-preview.1";
+        ?? "0.0.0";
 
     private static HttpClient CreateClient()
     {
         var client = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DeepDesk", "0.2.0"));
+        client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("DeepDesk", CurrentVersion));
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
         return client;
     }

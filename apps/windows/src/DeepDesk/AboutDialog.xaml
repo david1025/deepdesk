@@ -86,7 +86,7 @@
                 HorizontalAlignment="Right" VerticalAlignment="Center"
                 Click="Close_Click" IsCancel="True"/>
 
-        <TextBlock x:Name="VersionText" Grid.Row="1" Text="版本 0.2.0"
+        <TextBlock x:Name="VersionText" Grid.Row="1"
                    FontSize="13" FontWeight="Normal" Foreground="#50545D"
                    Margin="0,8,0,0" TextTrimming="CharacterEllipsis"
                    ToolTip="{Binding Text, ElementName=VersionText}"/>
