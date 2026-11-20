@@ -69,7 +69,8 @@ jobs:
             "artifacts/installer/DeepDesk-Setup-${expected}-x64.exe"
           )
           foreach ($path in $paths) {
-            $actual = (Get-Item $path).VersionInfo.ProductVersion
+            # Inno Setup pads the version resource string with trailing spaces.
+            $actual = (Get-Item $path).VersionInfo.ProductVersion.TrimEnd()
             if ($actual -cne $expected) { throw "Expected $expected in $path, got $actual" }
           }
 
