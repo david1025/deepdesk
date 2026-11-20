@@ -4,7 +4,7 @@
 
 The project plans to adapt components from [deepseek-ai/chat-demo](https://github.com/deepseek-ai/chat-demo), licensed under the MIT License.
 
-The upstream repository's copyright and MIT license notice must be retained with any source files copied into this repository and included in redistributed builds. The current first-pass UI is an independent scaffold; the upstream chat-demo source has not yet been vendored into this branch.
+The upstream repository's copyright and MIT license notice must be retained with any source files copied into this repository and included in redistributed builds. The shared UI in [apps/web](apps/web/) includes DeepSeek chat-demo source. The upstream [MIT license](apps/web/LICENSE) is copied into both desktop builds.
 
 ## Microsoft WebView2
 

@@ -271,8 +271,15 @@ enum MiniZip {
         let calendar = Calendar(identifier: .gregorian)
         let components = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
         let year = max(components.year ?? 1980, 1980)
-        let dosDate = UInt16(((year - 1980) << 9) | ((components.month ?? 1) << 5) | (components.day ?? 1))
-        let dosTime = UInt16(((components.hour ?? 0) << 11) | ((components.minute ?? 0) << 5) | ((components.second ?? 0) / 2))
+        let yearBits = (year - 1980) << 9
+        let monthBits = (components.month ?? 1) << 5
+        let day = components.day ?? 1
+        let dosDate = UInt16(yearBits | monthBits | day)
+
+        let hourBits = (components.hour ?? 0) << 11
+        let minuteBits = (components.minute ?? 0) << 5
+        let halfSeconds = (components.second ?? 0) / 2
+        let dosTime = UInt16(hourBits | minuteBits | halfSeconds)
         return (dosTime, dosDate)
     }
 }
