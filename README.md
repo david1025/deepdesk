@@ -5,6 +5,7 @@
 ## Download v1.1.0 pre-release
 
 - [Windows x64 installer (.exe)](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-x64.exe)
+- [Windows ARM64 installer (.exe)](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-arm64.exe) for Windows 11 on Arm
 - [macOS universal disk image (.dmg)](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-1.1.0-macOS-universal.dmg) for Apple silicon and Intel
 
 The macOS preview is ad hoc signed and has not been notarized. [Release notes](https://github.com/david1025/deepdesk/releases/tag/v1.1.0)
@@ -19,30 +20,34 @@ Windows and macOS use the release number in [`VERSION`](VERSION). On macOS, Abou
 
 ## Build from source
 
-Install Node.js 22.12 or later in the 22 series and pnpm 10. Clone the desktop integration branch, then run the platform commands from the repository root.
+Install Node.js 22.12 or later in the 22 series and pnpm 10. Clone the `main` branch, then run the platform commands from the repository root.
 
 ```sh
-git clone --branch integration/desktop-monorepo https://github.com/david1025/deepdesk.git
+git clone --branch main https://github.com/david1025/deepdesk.git
 cd deepdesk
 ```
 
 ### Windows
 
-You need Windows 10 or 11 x64, the .NET 10 SDK, and the Microsoft Edge WebView2 Runtime.
+You need Windows 10/11 x64 or Windows 11 ARM64, the .NET 10 SDK, and the Microsoft Edge WebView2 Runtime.
+
+On Windows 11 ARM64, use the x64 build of Node.js for the shared frontend. The Windows app is published for the architecture selected below.
 
 ```powershell
 pnpm --dir apps/web install --frozen-lockfile
 pnpm --dir apps/web type
 pnpm --dir apps/web build
 
-dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -o artifacts/DeepDesk-win-x64
-& .\artifacts\DeepDesk-win-x64\DeepDesk.exe
+# Use arm64 when building for Windows 11 on Arm
+$arch = 'x64'
+dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r "win-$arch" --self-contained true -o "artifacts/DeepDesk-win-$arch"
+& ".\artifacts\DeepDesk-win-$arch\DeepDesk.exe"
 ```
 
-To build a local installer, install Inno Setup 6 and run the following after publishing. The installer appears in `artifacts/installer/`.
+To build a local installer, install Inno Setup 6.3 or a later 6.x version and run the following after publishing. The installer appears in `artifacts/installer/`.
 
 ```powershell
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" apps/windows/installer/DeepDesk.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DBuildArch=$arch" apps/windows/installer/DeepDesk.iss
 ```
 
 ### macOS

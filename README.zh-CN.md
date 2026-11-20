@@ -5,6 +5,7 @@
 ## 下载 v1.1.0 预发布版
 
 - [Windows x64 安装包（.exe）](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-x64.exe)
+- [Windows ARM64 安装包（.exe）](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-arm64.exe)，适用于 Windows 11 ARM64
 - [macOS 通用磁盘镜像（.dmg）](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-1.1.0-macOS-universal.dmg)，适用于 Apple 芯片和 Intel Mac
 
 macOS 预览包采用临时签名，未经 Apple 公证。 [发布说明](https://github.com/david1025/deepdesk/releases/tag/v1.1.0)
@@ -19,30 +20,34 @@ Windows 和 macOS 共用 [`VERSION`](VERSION) 中的发布版本号。macOS 的�
 
 ## 从源码构建
 
-先安装 Node.js 22 系列（至少 22.12）和 pnpm 10。克隆桌面集成分支后，从仓库根目录执行对应平台的命令。
+先安装 Node.js 22 系列（至少 22.12）和 pnpm 10。克隆 `main` 分支后，从仓库根目录执行对应平台的命令。
 
 ```sh
-git clone --branch integration/desktop-monorepo https://github.com/david1025/deepdesk.git
+git clone --branch main https://github.com/david1025/deepdesk.git
 cd deepdesk
 ```
 
 ### Windows
 
-需要 Windows 10 或 11 x64、.NET 10 SDK 和 Microsoft Edge WebView2 Runtime。
+需要 Windows 10/11 x64 或 Windows 11 ARM64、.NET 10 SDK 和 Microsoft Edge WebView2 Runtime。
+
+在 Windows 11 ARM64 上，请使用 x64 版 Node.js 构建共享前端。Windows 应用按下方选择的架构发布。
 
 ```powershell
 pnpm --dir apps/web install --frozen-lockfile
 pnpm --dir apps/web type
 pnpm --dir apps/web build
 
-dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -o artifacts/DeepDesk-win-x64
-& .\artifacts\DeepDesk-win-x64\DeepDesk.exe
+# 为 Windows 11 ARM64 构建时改用 arm64
+$arch = 'x64'
+dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r "win-$arch" --self-contained true -o "artifacts/DeepDesk-win-$arch"
+& ".\artifacts\DeepDesk-win-$arch\DeepDesk.exe"
 ```
 
-如需生成安装包，安装 Inno Setup 6，在上面的发布命令完成后运行以下命令。安装包输出到 `artifacts/installer/`。
+如需生成安装包，安装 Inno Setup 6.3 或更新的 6.x 版本，在上面的发布命令完成后运行以下命令。安装包输出到 `artifacts/installer/`。
 
 ```powershell
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" apps/windows/installer/DeepDesk.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" "/DBuildArch=$arch" apps/windows/installer/DeepDesk.iss
 ```
 
 ### macOS
