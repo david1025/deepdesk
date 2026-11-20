@@ -39,7 +39,16 @@ codesign --verify --deep --strict --verbose=2 build/DeepSeek.xcarchive/Products/
 spctl --assess --type execute --verbose=4 build/DeepSeek.xcarchive/Products/Applications/DeepSeek.app
 ```
 
-之后按公司签名策略创建 `.dmg`，运行 `xcrun notarytool submit path/to/DeepSeek.dmg --keychain-profile PROFILE --wait`，成功后 `xcrun stapler staple path/to/DeepSeek.dmg` 与 `xcrun stapler validate`。**前提是有 Apple Developer ID 证书和已配置的 notarytool profile**。不要将证书/密码/私钥写入脚本仓库。
+返回仓库根目录后，可将已构建的 `DeepSeek.app` 打包为带拖拽安装布局的 DMG：
+
+```bash
+python3 -m venv artifacts/macos/dmg-venv
+artifacts/macos/dmg-venv/bin/python -m pip install 'dmgbuild==1.6.7' Pillow
+artifacts/macos/dmg-venv/bin/python scripts/package-macos-dmg.py \
+  /absolute/path/to/DeepSeek.app artifacts/macos/DeepDesk.dmg
+```
+
+在 Finder 挂载检查图标位置和拖拽指引。正式签名版本接着运行 `xcrun notarytool submit path/to/DeepSeek.dmg --keychain-profile PROFILE --wait`，成功后 `xcrun stapler staple path/to/DeepSeek.dmg` 与 `xcrun stapler validate`。**前提是有 Apple Developer ID 证书和已配置的 notarytool profile**。不要将证书/密码/私钥写入脚本仓库。
 
 ## 4. Sparkle 2
 
