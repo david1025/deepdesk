@@ -7,7 +7,7 @@
 - [ ] A01 XcodeGen 能生成 Xcode 工程；Xcode Debug/Release 真机编译无错误。
 - [ ] A02 Apple Silicon arm64 与 Intel x86_64 构建均可启动，Universal DMG 安装可用。
 - [ ] A03 Developer ID 签名 + Hardened Runtime，`spctl` 与 `stapler` 验证公证通过。
-- [ ] A04 覆盖安装/移动 `.app`、重启、升级后，聊天数据库和 Keychain 数据保持正常。
+- [ ] A04 覆盖安装/移动 `.app`、重启、升级后，聊天数据库保持正常；Mac API Key 保存后跨启动恢复。
 
 ## B. 原生桌面
 
@@ -43,7 +43,7 @@
 - [ ] E02 从 Windows 原始 v3 ZIP 导入保留消息树和图片，说明非图片原件限制。
 - [ ] E03 v4 完整备份包含所有本地附件；校验故障原子回滚，旧会话不丢。
 - [ ] E04 IndexedDB→SQLite 迁移分批校验 ID/条数/hash，失败不清空旧库。
-- [ ] E05 Key 存 Keychain，JS/LocalStorage/ZIP/日志中无明文；更换 Key 有效。
+- [ ] E05 Mac API Key 用私有本地文件保存，刷新、新窗口和重启均沿用配置；启动无需钥匙串授权，网页持久化存储、ZIP 和日志不含明文。
 - [ ] E06 外部网页、iframe、路径穿越不能调用任意 Native Bridge 系统能力。
 - [ ] E07 文件选择/拖拽/下载保留文件名且允许取消，Zip-slip / oversized archive 被拒绝。
 - [ ] E08 存储配额不足/磁盘只读/损坏/错误同步时，不静默覆盖用户聊天。

@@ -4,7 +4,9 @@ import WebKit
 
 @MainActor
 final class AppEnvironment: ObservableObject {
-    let keychain = KeychainService()
+    let credentials = LocalCredentialStore()
+    @Published private(set) var credentialConfigured = false
+    private var credentialRevision = 0
     let updates = UpdateService()
     let discovery = LANDiscoveryService()
     let network: ApiNetworkService
@@ -19,8 +21,12 @@ final class AppEnvironment: ObservableObject {
     private var coordinators: NSHashTable<AnyObject> = .weakObjects()
 
     init() {
-        self.network = ApiNetworkService(keychain: keychain)
+        self.network = ApiNetworkService(credentials: credentials)
         self.storage = StorageService()
+        credentialConfigured = credentials.loadForNativeRequestsOnly() != nil
+        if credentials.initialReadFailed {
+            DiagnosticsService.shared.log(.warn, "credentials", "Could not read the private credential file")
+        }
         discovery.start { _ in }
         // 多窗口一致性（B07）：任何窗口的写入都广播 nativeStorageChanged 给全部 webview
         self.storage.onChange = { [weak self] revision, entityType, entityId in
@@ -29,7 +35,7 @@ final class AppEnvironment: ObservableObject {
         Task { @MainActor in
             _ = try? await self.storage.cleanupOrphans()
         }
-        BridgeSelfTest.runIfRequested(environment: self)
+        BridgeSelfTest.runIfRequested()
         DiagnosticsService.shared.log(.info, "app", "launch \(version) (\(build))")
     }
 
@@ -57,6 +63,20 @@ final class AppEnvironment: ObservableObject {
         let detail = ["revision": revision, "entityType": entityType, "entityId": entityId] as [String: Any]
         for coordinator in coordinators.allObjects.compactMap({ $0 as? WebContainerView.Coordinator }) {
             coordinator.pushStorageChange(detail: detail)
+        }
+    }
+
+    var credentialStatus: [String: Any] {
+        ["configured": credentialConfigured, "revision": credentialRevision]
+    }
+
+    func setCredential(_ key: String?) throws {
+        try credentials.set(key)
+        credentialRevision += 1
+        credentialConfigured = key != nil
+        let status = credentialStatus
+        for coordinator in coordinators.allObjects.compactMap({ $0 as? WebContainerView.Coordinator }) {
+            coordinator.pushCredentialStatus(status)
         }
     }
 

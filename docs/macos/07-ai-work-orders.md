@@ -20,9 +20,9 @@
 输出：Web Browser/Windows/macOS adapters；强类型命令白名单；异步请求 ID/错误码/事件订阅；原生侧入站严格校验；端到端测试。
 完成标准：Web 无分散的 `window.webkit`/Windows 原生 API 调用；恶意 iframe/外链不能调用 Native Bridge。
 
-## T04：Keychain 与原生 API 网络层
+## T04：本地凭据与原生 API 网络层
 
-输出：旧 localStorage→Keychain 一次性迁移、原生 URLSession `models/messages/files/asr/tts`、SSE 流转发、取消/重试/状态码分类、脱敏日志。
+输出：启动时清理旧网页凭据缓存、本地凭据与窗口状态广播、原生 URLSession `models/messages/files/asr/tts`、SSE 流转发、取消/重试/状态码分类、脱敏日志。
 完成标准：全量 C01–C03、E05 通过，明文密钥不在 Web 持久层/导出/日志；所有 API 真正经过 NativeNetworking。
 
 ## T05：完整聊天业务联调
@@ -74,7 +74,7 @@
 
 ```text
 你现在接手 DeepSeekMac-V1-Starter 仓库。先完整读取 AGENTS.md、README.md、docs/01-technical-plan.md、docs/02-feature-scope.md、docs/03-migration.md、docs/06-v1-acceptance.md、docs/07-ai-work-orders.md。
-本项目目标为首版 V1 一次性交付全功能：从用户已经定制的 Windows chat-demo React 前端迁入，Mac 原生 SwiftUI+AppKit+WKWebView 宿主，全量聊天/语音/附件/备份、原生系统功能、Keychain + Native Networking + SQLite、Sparkle、安全局域网跨 Windows/Android 增量同步。
+本项目目标为首版 V1 一次性交付全功能：从用户已经定制的 Windows chat-demo React 前端迁入，Mac 原生 SwiftUI+AppKit+WKWebView 宿主，全量聊天/语音/附件/备份、原生系统功能、本地凭据 + Native Networking + SQLite、Sparkle、安全局域网跨 Windows/Android 增量同步。
 当前压缩包仅为工程骨架，并未完成 V1。严禁把占位页当作聊天客户端，也不得以官方 upstream 覆盖用户 Windows 定制源码。任何无法实测的功能都标记待验证，不要臆称已通过。
 请先评估并列出当前项目实际可用/未接通项，选择 T01 起按依赖执行。每轮直接产出可合并的代码，保持单一 Web UI、跨端 Adapter、原子迁移、密钥不回传 JS、安全白名单，并提交每项任务的文件变更、测试命令/结果、未解决问题与下一项依赖。除非需要真实凭据/证书/私有源代码，否则不要停留在口头方案。
 ```

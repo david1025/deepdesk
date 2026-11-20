@@ -2,11 +2,11 @@
  * DeepDesk 桌面凭据/余额桥。
  * Windows：WebView2 postMessage（动作名与 DeepDesk 0.1.2 保持一致）。
  * macOS：window.deepseekNativeCall 映射到 Native Bridge v1 白名单命令，
- *        API Key 写入 Keychain，原生网络层自行读取，密钥不回传 JS。
+ *        API Key 仅交给原生凭据服务，密钥不回传 JS。
  * 浏览器（pnpm dev）两套桥都不存在时按原有浏览器流程回退。
  */
 import { isMacDesktop, isWindowsDesktop } from './desktop.js'
-import { setApiKey, useSettings } from './settings.js'
+import { NATIVE_CREDENTIAL_MARKER, setApiKey, useSettings } from './settings.js'
 
 type NativeResponse = { type: 'response'; requestId: string; success: boolean; data: unknown }
 
@@ -23,8 +23,8 @@ let sequence = 0
 let listening = false
 let credentialRevision = 0
 
-const applyWindowsCredentialStatus = (configured: boolean) => {
-  const next = configured ? 'DEEPDESK_NATIVE_CREDENTIAL' : null
+const applyCredentialStatus = (configured: boolean) => {
+  const next = configured ? NATIVE_CREDENTIAL_MARKER : null
   if (useSettings.getState().apiKey !== next) setApiKey(next)
 }
 
@@ -38,7 +38,7 @@ const requestWindows = <T = Record<string, unknown>>(action: string, payload: Re
       if (!message) return
       if (message.type === 'deepdesk-credentials-changed') {
         credentialRevision++
-        applyWindowsCredentialStatus(message.configured)
+        applyCredentialStatus(message.configured)
         return
       }
       if (message.type !== 'response') return
@@ -63,7 +63,7 @@ if (isWindowsDesktop()) {
   const initialRevision = credentialRevision
   void requestWindows<{ apiKeyConfigured: boolean }>('app.getStatus')
     .then(({ apiKeyConfigured }) => {
-      if (credentialRevision === initialRevision) applyWindowsCredentialStatus(apiKeyConfigured)
+      if (credentialRevision === initialRevision) applyCredentialStatus(apiKeyConfigured)
     })
     .catch(() => {})
 }
@@ -78,12 +78,28 @@ const requestMac = async <T = Record<string, unknown>>(method: string, params: R
   }
 }
 
-/** 业务动作名 → macOS Bridge v1 白名单命令 */
+type MacCredentialStatus = { configured: boolean; revision: number }
+
+let macCredentialRevision = -1
+
+const applyMacCredentialStatus = (status: MacCredentialStatus) => {
+  if (typeof status?.configured !== 'boolean' || !Number.isSafeInteger(status.revision)
+      || status.revision < macCredentialRevision) return
+  macCredentialRevision = status.revision
+  applyCredentialStatus(status.configured)
+}
+
+/** 先恢复当前原生进程的状态，再挂载页面，避免刷新时误弹 API Key 输入框。 */
+export const initializeMacCredential = async () => {
+  if (!isMacDesktop() || window.__DEEPSEEK_DESKTOP__?.localCredentialVersion !== 1) return
+  window.addEventListener('nativeLocalCredentialV1Changed', (event) => {
+    applyMacCredentialStatus((event as CustomEvent<MacCredentialStatus>).detail)
+  })
+  const status = await requestMac<MacCredentialStatus>('security.localCredential.v1.status', {})
+  applyMacCredentialStatus(status)
+}
+
 const MAC_METHODS: Record<string, { method: string; params?: (payload: Record<string, unknown>) => Record<string, unknown> }> = {
-  'settings.saveApiKey': {
-    method: 'security.key.save',
-    params: (payload) => ({ key: payload.apiKey }),
-  },
   'api.getBalance': {
     method: 'network.request',
     params: () => ({ operation: 'balance' }),
@@ -99,7 +115,16 @@ export const nativeRequest = <T = Record<string, unknown>>(action: string, paylo
   return requestWindows<T>(action, payload)
 }
 
-export const saveNativeApiKey = (apiKey: string) => nativeRequest<{ saved: boolean }>('settings.saveApiKey', { apiKey })
+export const saveNativeApiKey = async (apiKey: string) => {
+  if (isMacDesktop()) {
+    const status = await requestMac<MacCredentialStatus>('security.localCredential.v1.set', { key: apiKey })
+    applyMacCredentialStatus(status)
+    return
+  }
+  await requestWindows<{ saved: boolean }>('settings.saveApiKey', { apiKey })
+  applyCredentialStatus(true)
+}
+
 export const getNativeBalance = () => nativeRequest<{
   is_available: boolean
   balance_infos: Array<{ currency: 'CNY' | 'USD'; total_balance: string; granted_balance: string; topped_up_balance: string }>

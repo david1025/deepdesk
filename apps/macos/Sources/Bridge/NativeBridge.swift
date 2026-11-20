@@ -53,7 +53,7 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
                                               "operation=\(method) status=\(payload["status"] as? Int ?? 0) code=\(payload["code"] as? String ?? "?")")
                 reply(failure: payload, replyHandler)
             } catch {
-                // 不把 Keychain/底层原始错误细节回传前端
+                // 不把底层原始错误细节回传前端
                 DiagnosticsService.shared.log(.error, "bridge",
                                               "method=\(method) failed type=\(String(describing: type(of: error)))")
                 reply(failure: ["code": "internal-error", "message": "原生操作失败。"], replyHandler)
@@ -125,19 +125,28 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
             }
             environment.theme.applyWebReported(theme: theme, preference: preference)
             return ["acknowledged": true]
-        // ---- 密钥（只写/查/删，不读回 JS）----
-        case "security.key.exists":
-            return ["exists": environment.keychain.exists()]
-        case "security.key.save":
-            guard let key = params["key"] as? String, !key.isEmpty, key.count <= 4096 else {
+        // ---- 本地凭据 v1：向网页只返回配置状态 ----
+        case "security.localCredential.v1.status":
+            return environment.credentialStatus
+        case "security.localCredential.v1.set":
+            guard let key = (params["key"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  LocalCredentialStore.isValidKey(key) else {
                 throw BridgeError.invalidParameter("API Key 无效")
             }
-            try environment.keychain.save(key)
-            return ["saved": true]
-        case "security.key.delete":
-            try environment.keychain.delete()
-            return ["deleted": true]
-        // ---- 网络（Keychain 密钥仅原生持有）----
+            do {
+                try environment.setCredential(key)
+            } catch {
+                throw BridgeError.credentialStorageFailed
+            }
+            return environment.credentialStatus
+        case "security.localCredential.v1.clear":
+            do {
+                try environment.setCredential(nil)
+            } catch {
+                throw BridgeError.credentialStorageFailed
+            }
+            return environment.credentialStatus
+        // ---- 网络 ----
         case "network.request":
             guard let operation = params["operation"] as? String else {
                 throw BridgeError.invalidParameter("operation 无效")
@@ -409,11 +418,14 @@ final class NativeBridge: NSObject, WKScriptMessageHandlerWithReply {
 enum BridgeError: Error {
     case invalidParameter(String)
     case unknownMethod
+    case credentialStorageFailed
 
     var payload: [String: Any] {
         switch self {
         case .invalidParameter(let message):
             return ["code": "INVALID_REQUEST", "message": message]
+        case .credentialStorageFailed:
+            return ["code": "CREDENTIAL_STORAGE_FAILED", "message": "无法更新本机保存的 API Key。"]
         case .unknownMethod:
             return ["code": "ACTION_NOT_ALLOWED", "message": "不支持的操作。"]
         }

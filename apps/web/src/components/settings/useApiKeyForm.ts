@@ -39,7 +39,6 @@ export const useApiKeyForm = (onSaved?: () => void) => {
       try {
         // On Windows the host verifies the supplied key directly, avoiding the old-key header injector.
         await saveNativeApiKey(apiKey)
-        setApiKey('DEEPDESK_NATIVE_CREDENTIAL')
       } catch (error) {
         if (error instanceof Error && error.message === 'Native Windows bridge is unavailable') {
           // Browser-only development fallback; the Windows host never stores the key in renderer storage.

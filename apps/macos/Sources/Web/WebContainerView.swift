@@ -23,9 +23,9 @@ struct WebContainerView: NSViewRepresentable {
             name: "nativeBridge"
         )
 
-        // 文档开始前注入：能力声明 + Bridge 封装 + 旧 localStorage 明文密钥一次性迁入 Keychain
+        // 文档开始前注入：能力声明 + Bridge 封装 + 清除旧凭据缓存
         let injectedScript = """
-        window.__DEEPSEEK_DESKTOP__ = Object.freeze({ platform: 'macos', bridgeVersion: 1, attachmentPreviewVersion: 1 });
+        window.__DEEPSEEK_DESKTOP__ = Object.freeze({ platform: 'macos', bridgeVersion: 1, attachmentPreviewVersion: 1, localCredentialVersion: 1 });
         window.deepseekNativeCall = async function(method, params = {}) {
           const handler = window.webkit?.messageHandlers?.nativeBridge;
           if (!handler) throw new Error('nativeBridge unavailable');
@@ -39,19 +39,7 @@ struct WebContainerView: NSViewRepresentable {
           }
           return response.data;
         };
-        (async () => {
-          try {
-            const KEY = 'chat-demo:api-key';
-            const current = localStorage.getItem(KEY);
-            if (!current || current === 'DEEPDESK_NATIVE_CREDENTIAL') return;
-            const handler = window.webkit?.messageHandlers?.nativeBridge;
-            if (!handler) return;
-            const response = await handler.postMessage({ method: 'security.key.save', params: { key: current } });
-            if (response && response.ok === true) {
-              localStorage.setItem(KEY, 'DEEPDESK_NATIVE_CREDENTIAL');
-            }
-          } catch {}
-        })();
+        try { localStorage.removeItem('chat-demo:api-key'); } catch {}
         """
         config.userContentController.addUserScript(WKUserScript(
             source: injectedScript,
@@ -271,6 +259,18 @@ struct WebContainerView: NSViewRepresentable {
                 try? await view.callAsyncJavaScript(
                     "window.dispatchEvent(new CustomEvent('nativeStorageChanged', { detail }))",
                     arguments: ["detail": detail],
+                    in: nil,
+                    contentWorld: .page
+                )
+            }
+        }
+
+        func pushCredentialStatus(_ status: [String: Any]) {
+            guard let view else { return }
+            Task {
+                try? await view.callAsyncJavaScript(
+                    "window.dispatchEvent(new CustomEvent('nativeLocalCredentialV1Changed', { detail }))",
+                    arguments: ["detail": status],
                     in: nil,
                     contentWorld: .page
                 )

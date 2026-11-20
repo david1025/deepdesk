@@ -1,7 +1,7 @@
 /**
- * macOS 宿主专属 API 传输层：全部请求经 Native Bridge（NativeNetworking + Keychain）。
+ * macOS 宿主专属 API 传输层：全部请求经 Native Bridge（原生网络 + 本地凭据）。
  * - 密钥参数在此层一律忽略（上游传入的是 DEEPDESK_NATIVE_CREDENTIAL 哨兵），
- *   原生侧直接从 Keychain 读取，密钥不回传 JS。
+ *   原生侧读取已配置的密钥，密钥不回传 JS。
  * - SSE 语义保持不变：原生转发原始字节（base64），Web 端用上游 ServerSentEventDecoder 解析。
  * 仅在 isMacDesktop() 为真时被调用；浏览器/Windows 构建不会执行这些函数。
  */
@@ -38,7 +38,7 @@ const toBase64 = (bytes: Uint8Array): string => {
   return btoa(binary)
 }
 
-/** 用 GET /models 校验（原生用 Keychain 中的密钥）；取消由原生 25s 超时兜底 */
+/** 用 GET /models 校验（原生使用本机保存的密钥）；取消由原生 25s 超时兜底 */
 export const nativeVerifyApiKey = async (): Promise<void> => {
   await call('network.request', { operation: 'models' })
 }

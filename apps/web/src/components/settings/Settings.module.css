@@ -440,3 +440,8 @@
     max-width: 100%;
   }
 }
+
+.apiKeyHint {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+}

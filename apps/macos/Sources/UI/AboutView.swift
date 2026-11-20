@@ -23,7 +23,7 @@ struct AboutView: View {
             Text("版本 \(environment.version) (\(environment.build))")
                 .font(.caption)
                 .foregroundStyle(.secondary)
-            Text("基于 MIT 许可的开源项目 deepseek-ai/chat-demo 构建；\nAPI Key 存储在 macOS Keychain，聊天数据保存在本机。")
+            Text("基于 MIT 许可的开源项目 deepseek-ai/chat-demo 构建；\nAPI Key 和聊天数据保存在本机。")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

@@ -8,13 +8,22 @@ JS 注入 `window.__DEEPSEEK_DESKTOP__={platform:'macos',bridgeVersion:1}` 和 `
 |---|---|---|---|
 | `app.getInfo` | `{}` | `{platform,version,build,bridgeVersion}` | 返回版本 |
 | `system.getTheme` | `{}` | `{theme:'light'|'dark'}` | 尚未添加主动变化推送 |
-| `security.key.exists` | `{}` | `{exists:boolean}` | 不返回密钥 |
-| `security.key.save` | `{key:string}` | `{saved:true}` | Key 写入 Keychain |
-| `security.key.delete` | `{}` | `{deleted:true}` | 从 Keychain 删除 |
 | `app.openExternal` | `{url}` | `{opened:true}` | 仅 http/https |
 | `updater.check` | `{}` | `{requested:true}` | 未配置 Sparkle feed 时显示明确提示 |
 
-**注意**：`security.key.save` 已实现但原 chat-demo 前端尚未调用。把密钥写入 Keychain 本身不代表已杜绝其原本的 `localStorage` 路径。
+## 本地 API 凭据 v1（macOS）
+
+宿主在 `__DEEPSEEK_DESKTOP__` 中声明 `localCredentialVersion: 1`。原生窗口共用同一个本地凭据，网页只接收 `{configured: boolean, revision: number}`。
+
+| 命令 | 参数 | 响应 |
+|---|---|---|
+| `security.localCredential.v1.status` | `{}` | 当前配置状态 |
+| `security.localCredential.v1.set` | `{key: string}` | 新的配置状态 |
+| `security.localCredential.v1.clear` | `{}` | 已清空的配置状态 |
+
+`nativeLocalCredentialV1Changed` 以同一响应结构通知所有窗口。修订号在当前进程中单调增长。前端在渲染前查询配置，刷新或打开新窗口可继续使用当前凭据。原生端先原子保存私有文件，再返回成功和广播状态。重启会恢复已保存的凭据；保存失败返回 `CREDENTIAL_STORAGE_FAILED`。
+
+升级时原生宿主和内置前端一起替换。旧 `security.key.*` 和仅内存测试版的 `security.sessionCredential.v1.*` 命令退役，启动时清除旧网页存储的 Key 或标记。已有钥匙串项目保留，应用不打开它。从旧版本升级时只需重新输入一次 Key。
 
 ## 附件预览 v1（macOS）
 
@@ -28,7 +37,7 @@ JS 注入 `window.__DEEPSEEK_DESKTOP__={platform:'macos',bridgeVersion:1}` 和 `
 | 命令 | 请求 | 返回 | 约束 |
 |---|---|---|---|
 | `network.request` | `{requestId,operation,payload}` | `{requestId,status,data}` | operation 只允许 models/files/asr/tts 等固定接口 |
-| `network.stream.start` | `{requestId,body}` | `{streamId}` | Native 自取 Keychain，逐帧推事件 |
+| `network.stream.start` | `{requestId,body}` | `{streamId}` | Native 从本地凭据服务取 Key，逐帧推事件 |
 | `network.stream.cancel` | `{streamId}` | `{cancelled:true}` | 必须取消 URLSession 网络任务 |
 | `file.pick` | `{types,multiple}` | `{files:[...]}` | 用户选文件，不允许任意路径 |
 | `file.save` | `{suggestedName,blobHandle}` | `{saved:true}` | 不跨 Bridge 传大二进制 Base64 |

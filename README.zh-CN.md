@@ -11,7 +11,7 @@ macOS 预览包采用临时签名，未经 Apple 公证。 [发布说明](https:
 
 DeepDesk 是适用于 Windows 和 macOS 的独立 DeepSeek API 桌面客户端。两端共用的 React 和 TypeScript 聊天界面源自 [DeepSeek chat-demo](https://github.com/deepseek-ai/chat-demo)。Windows 使用 WPF 和 WebView2，macOS 使用 SwiftUI、AppKit 和 WKWebView。
 
-两端共用聊天、流式回复、Markdown 渲染和附件处理功能。聊天记录保存在本地。发送消息前，请在设置中填写自己的 DeepSeek API Key。剩余功能和验证工作见 [V1 验收清单](docs/macos/06-v1-acceptance.md)。
+两端共用聊天、流式回复、Markdown 渲染和附件处理功能。聊天记录保存在本地。发送消息前，请在设置中填写自己的 DeepSeek API Key。macOS 版由原生程序保存到当前用户的 Application Support 私有文件，重启后继续使用。剩余功能和验证工作见 [V1 验收清单](docs/macos/06-v1-acceptance.md)。
 
 ## 桌面版本号
 

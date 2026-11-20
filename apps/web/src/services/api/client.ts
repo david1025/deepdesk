@@ -93,7 +93,7 @@ const anthropicHeaders = (apiKey: string, beta: boolean): Record<string, string>
 
 /** 用 GET /models 校验 API Key（不产生费用） */
 export const verifyApiKey = async (apiKey: string, signal?: AbortSignal): Promise<void> => {
-  // macOS 宿主：密钥在 Keychain，由原生层校验；apiKey 形参只是上游签名的哨兵值
+  // macOS 宿主：密钥由 Mac 原生端提供，由原生层校验；apiKey 形参只是上游签名的哨兵值
   if (isMacDesktop()) return nativeVerifyApiKey()
   await request(`${API_ORIGIN}/models`, {
     method: 'GET',

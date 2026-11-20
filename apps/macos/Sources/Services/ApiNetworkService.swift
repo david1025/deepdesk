@@ -1,6 +1,6 @@
 import Foundation
 
-/// 原生 API 网络层。所有 DeepSeek 请求由原生 URLSession 发起，API Key 只从 Keychain 读取，
+/// 原生 API 网络层。所有 DeepSeek 请求由原生 URLSession 发起，API Key 由原生凭据服务提供，
 /// 不回传网页 JS（docs/01-technical-plan.md §7）。operations 白名单：
 /// models / balance / files.delete / tts（network.request），
 /// messages（network.stream.*），files.upload / asr（network.upload.*）。
@@ -49,7 +49,7 @@ final class ApiNetworkService: NSObject {
 
     final class SSEStream: NSObject, URLSessionDataDelegate {
         let id: String
-        private let keychain: KeychainService
+        private let credentials: LocalCredentialStore
         private let onEvent: (StreamEvent) -> Void
         private var task: URLSessionDataTask?
         private var pendingData = Data()
@@ -59,14 +59,14 @@ final class ApiNetworkService: NSObject {
         private var completed = false
         private let stateQueue = DispatchQueue(label: "com.deepseek.mac.stream-state")
 
-        init(id: String, keychain: KeychainService, onEvent: @escaping (StreamEvent) -> Void) {
+        init(id: String, credentials: LocalCredentialStore, onEvent: @escaping (StreamEvent) -> Void) {
             self.id = id
-            self.keychain = keychain
+            self.credentials = credentials
             self.onEvent = onEvent
         }
 
         func start(body: [String: Any], beta: Bool) throws {
-            guard let key = try keychain.loadForNativeRequestsOnly() else {
+            guard let key = credentials.loadForNativeRequestsOnly() else {
                 throw NativeApiError.http(status: 401, message: "API Key 无效或无权访问。")
             }
             guard JSONSerialization.isValidJSONObject(body),
@@ -220,20 +220,20 @@ final class ApiNetworkService: NSObject {
 
     // MARK: - 服务状态
 
-    private let keychain: KeychainService
+    private let credentials: LocalCredentialStore
     private let stateQueue = DispatchQueue(label: "com.deepseek.mac.api-network")
     private var streams: [String: SSEStream] = [:]
     private var uploads: [String: StagedUpload] = [:]
 
-    init(keychain: KeychainService) {
-        self.keychain = keychain
+    init(credentials: LocalCredentialStore) {
+        self.credentials = credentials
         super.init()
     }
 
     // MARK: network.request（models / balance / files.delete / tts）
 
     func request(operation: String, payload: [String: Any]) async throws -> [String: Any] {
-        guard let key = try keychain.loadForNativeRequestsOnly() else {
+        guard let key = credentials.loadForNativeRequestsOnly() else {
             throw NativeApiError.http(status: 401, message: "API Key 无效或无权访问。")
         }
         switch operation {
@@ -356,7 +356,7 @@ final class ApiNetworkService: NSObject {
             return value
         }
         guard let staged else { throw NativeApiError.invalidParameter("上传会话不存在或已结束") }
-        guard let key = try keychain.loadForNativeRequestsOnly() else {
+        guard let key = credentials.loadForNativeRequestsOnly() else {
             throw NativeApiError.http(status: 401, message: "API Key 无效或无权访问。")
         }
 
@@ -415,7 +415,7 @@ final class ApiNetworkService: NSObject {
 
     func startStream(body: [String: Any], beta: Bool, onEvent: @escaping (String, StreamEvent) -> Void) throws -> String {
         let streamId = UUID().uuidString
-        let stream = SSEStream(id: streamId, keychain: keychain) { [weak self] event in
+        let stream = SSEStream(id: streamId, credentials: credentials) { [weak self] event in
             onEvent(streamId, event)
             if Self.isTerminal(event) {
                 self?.stateQueue.sync { _ = self?.streams.removeValue(forKey: streamId) }

@@ -1,6 +1,6 @@
 import { createRoot } from 'react-dom/client'
 import { importHistory } from './services/chat/backup.js'
-import './services/native.js'
+import { initializeMacCredential } from './services/native.js'
 import { notifyHistoryImportResult } from './services/desktop.js'
 import { newChat } from './services/chat/store.js'
 import { migrateStorageToNative } from './services/chat/migrateStorage.js'
@@ -103,4 +103,6 @@ window.__deepseekMigrateStorage = () =>
     console.info(`[storage-migration] ${progress.phase} ${progress.done}/${progress.total}`)
   })
 
-createRoot(document.getElementById('root') as HTMLElement).render(<App />)
+void initializeMacCredential().catch(() => {}).then(() => {
+  createRoot(document.getElementById('root') as HTMLElement).render(<App />)
+})

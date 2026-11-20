@@ -11,7 +11,7 @@ The macOS preview is ad hoc signed and has not been notarized. [Release notes](h
 
 DeepDesk is an independent desktop client for the DeepSeek API on Windows and macOS. Its shared React and TypeScript chat interface is adapted from [DeepSeek chat-demo](https://github.com/deepseek-ai/chat-demo). Windows hosts it in WPF and WebView2. macOS hosts it in SwiftUI, AppKit, and WKWebView.
 
-The desktop apps share chat, streaming responses, Markdown rendering, and attachment handling. Conversations are stored locally. Enter your own DeepSeek API key in Settings before sending messages. See the [V1 acceptance checklist](docs/macos/06-v1-acceptance.md) for remaining work and validation.
+The desktop apps share chat, streaming responses, Markdown rendering, and attachment handling. Conversations are stored locally. Enter your own DeepSeek API key in Settings before sending messages. On macOS the native app saves it in a user-only file in Application Support and reuses it on restart. See the [V1 acceptance checklist](docs/macos/06-v1-acceptance.md) for remaining work and validation.
 
 ## Desktop version
 

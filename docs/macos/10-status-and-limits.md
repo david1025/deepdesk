@@ -19,15 +19,15 @@
 
 - Web 侧：`desktop.ts` 平台适配层，组件无平台分支；`nativeTransport.ts` 只在 macos 宿主生效。
 - 原生侧：`NativeBridge` 白名单分发（主 frame + Bundle Web/ 路径校验、参数强校验、结构化错误 `{code,message,status}`）。
-- Bridge 方法：app.getInfo/openExternal/loginItem.get/set、system.getTheme/themeChanged、security.key.*、network.request/stream.*/upload.*、import.pickArchive/reportResult、updater.check、window.new/setTitle、sync.discover。
+- Bridge 方法：app.getInfo/openExternal/loginItem.get/set、system.getTheme/themeChanged、security.localCredential.v1.*、network.request/stream.*/upload.*、import.pickArchive/reportResult、updater.check、window.new/setTitle、sync.discover。
 - 事件：`nativeStreamEvent`（seq 有序）、`nativeThemeChanged`，经 `callAsyncJavaScript` 推送（无字符串拼接）。
 - `contracts/bridge-v1.d.ts` 已同步实现状态；`file.pick/save/openDirectory`、`sync.pair/status/start/stop` 未实现（前端不得假装成功）。
 
-## T04 Keychain + 原生网络层 — 已完成 ✅（真实 API 验证为负路径）
+## T04 本地凭据与原生网络层
 
-- `ApiNetworkService`：URLSession 全量代理 models/balance/files.delete/tts/messages(SSE)/files.upload/asr；Keychain 读 Key；错误分类（401/402/413/429/5xx/断网/超时→`{status,message}` 与上游 classifyApiError 对齐）；流式 chunk 30ms 合帧；取消真正取消 URLSession task。
-- 旧 localStorage 明文 Key 一次性迁移：文档启动脚本 `security.key.save` → 哨兵替换（与 Windows 相同流程）。
-- 证据（`--bridge-selftest`，真实 HTTPS 到 api.deepseek.com）：Keychain 写查删 ✅；无 Key→401 ✅；假 Key→服务端 401 且错误消息解析正确、不泄露密钥 ✅；非法 operation 白名单拒绝 ✅；SSE 流假 Key→error 事件 status=401 ✅。
+- `ApiNetworkService`：URLSession 全量代理 models/balance/files.delete/tts/messages(SSE)/files.upload/asr；由原生凭据服务提供 Key；错误分类（401/402/413/429/5xx/断网/超时→`{status,message}` 与上游 classifyApiError 对齐）；流式 chunk 30ms 合帧；取消真正取消 URLSession task。
+- Mac 启动脚本清理旧网页凭据缓存。新版本用用户私有凭据文件保存和恢复 Key。既有钥匙串条目不参与升级。
+- 本机 Xcode Debug 构建和真实 WKWebView 合成测试通过保存、跨窗口状态、网页刷新、退出重启后恢复和清除。原生自检 11 项通过，网络回归项包括无 Key→401 ✅；假 Key→服务端 401 且错误消息解析正确、不泄露密钥 ✅；非法 operation 白名单拒绝 ✅；SSE 流假 Key→error 事件 status=401 ✅。
 - **待验收**：有效 Key 的正向流式对话/上传/ASR/TTS（C01/C02 正向）需真实 Key。
 
 ## T05 聊天业务联调 — 部分完成 ⚠️
@@ -55,7 +55,7 @@
 
 - 红黄绿原生窗口（主窗口 2026-11-20 起改为 `.hiddenTitleBar` 隐藏标题栏，红绿灯浮于侧栏上，侧栏头部 236×40 拖拽区 `WindowDragStrip`，弹窗遮罩不再与标题栏割裂）、原生菜单栏（文件/编辑/显示/窗口/帮助）、Cmd+N 新聊天 / Cmd+Shift+N 新窗口 / Cmd+0 主窗口 / Cmd+R 刷新 / Cmd+, 设置 / Cmd+W / Cmd+Q、MenuBarExtra、关于窗口、主题联动（网页偏好主控，`system.themeChanged` 带 preference 防跟随系统死循环）、登录项 SMAppService、文档标题同步窗口标题、聊天内图片预览和原生 PDFKit 预览、下载保存面板、文件选择面板。
 - 侧栏 logo 修复（2026-11-20）：Sider 引用的 `/deepdesk-logo.png` 此前从未进构建产物（rspack 无 publicDir 约定），已建 `apps/web/public/` 并在 rspack.config.ts 加 CopyRspackPlugin 拷贝 public/ → dist 根目录。
-- 首启引导（2026-11-20 移除）：原生两步向导（Key 校验→Keychain、ZIP 导入窗口）已整体删除——API Key 与历史导入在网页设置弹窗中本就齐备，且 web 侧无 Key 时设置弹窗自动弹出"数据管理"页（官方 demo 默认行为）；原生向导只写 Keychain 不写 web localStorage，反而会造成二次弹窗。历史 ZIP 导入的原生文件选择通道（`history.import` → ImportService）保留，仍服务网页设置里的导入按钮。
+- 首启引导（2026-11-20 移除）：原生两步向导（旧凭据流程、ZIP 导入窗口）已整体删除——API Key 与历史导入在网页设置弹窗中本就齐备，且 web 侧无 Key 时设置弹窗自动弹出"数据管理"页（官方 demo 默认行为）；原生向导只写 Keychain 不写 web localStorage，反而会造成二次弹窗。历史 ZIP 导入的原生文件选择通道（`history.import` → ImportService）保留，仍服务网页设置里的导入按钮。
 - 窗口尺寸记忆（2026-11-20 补）：`WindowFrameAutosave`（NSWindow.setFrameAutosaveName）主窗口 + 设置窗口持久化 frame，重启恢复。
 - 待验收：快捷键与输入法冲突实测、窗口尺寸记忆真机实测、深浅色实时切换实测。
 

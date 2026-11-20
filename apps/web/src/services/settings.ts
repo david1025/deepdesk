@@ -1,4 +1,7 @@
 import { create } from 'zustand'
+import { isMacDesktop } from './desktop.js'
+
+export const NATIVE_CREDENTIAL_MARKER = 'DEEPDESK_NATIVE_CREDENTIAL'
 import type { ChatModel, ReasoningEffort } from './api/types.js'
 import type { TtsVoice } from './api/speech.js'
 import { normalizeLocation, type UserLocation } from './location.js'
@@ -101,7 +104,7 @@ const initialReasoningEffort = (): ReasoningEffort => {
 }
 
 export const useSettings = create<Settings>(() => ({
-  apiKey: read(KEYS.apiKey),
+  apiKey: isMacDesktop() ? null : read(KEYS.apiKey),
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
@@ -136,6 +139,10 @@ export const setTtsVoice = (ttsVoice: TtsVoice) => {
 }
 
 export const setApiKey = (apiKey: string | null) => {
+  if (isMacDesktop()) {
+    useSettings.setState({ apiKey: apiKey === NATIVE_CREDENTIAL_MARKER ? apiKey : null })
+    return
+  }
   write(KEYS.apiKey, apiKey)
   useSettings.setState({ apiKey })
 }

@@ -24,7 +24,7 @@ export interface DesktopPlatformAdapter {
 
 declare global {
   interface Window {
-    __DEEPSEEK_DESKTOP__?: Readonly<{platform:'macos'; bridgeVersion: number}>;
+    __DEEPSEEK_DESKTOP__?: Readonly<{platform:'macos'; bridgeVersion: number; localCredentialVersion?: number}>;
     deepseekNativeCall?: (method: string, params?: Record<string,unknown>) => Promise<unknown>;
   }
 }
@@ -68,15 +68,15 @@ export class MacPlatformAdapter implements DesktopPlatformAdapter {
   }
   async checkForUpdates(): Promise<void> { await this.call('updater.check'); }
   async hasApiKey(): Promise<boolean> {
-    const value = requireObject(await this.call('security.key.exists')).exists;
-    if (typeof value !== 'boolean') throw new Error('Invalid Keychain reply');
+    const value = requireObject(await this.call('security.localCredential.v1.status')).configured;
+    if (typeof value !== 'boolean') throw new Error('Invalid session credential status');
     return value;
   }
   async saveApiKey(apiKey: string): Promise<void> {
     if (!apiKey) throw new Error('Missing API key');
-    await this.call('security.key.save', {key: apiKey});
+    await this.call('security.localCredential.v1.set', {key: apiKey});
   }
-  async deleteApiKey(): Promise<void> { await this.call('security.key.delete'); }
+  async deleteApiKey(): Promise<void> { await this.call('security.localCredential.v1.clear'); }
 }
 
 export function detectPlatform(): Platform {

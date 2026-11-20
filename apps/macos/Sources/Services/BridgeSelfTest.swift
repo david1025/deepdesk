@@ -2,26 +2,21 @@ import Foundation
 import AppKit
 
 /// 开发诊断：`DeepSeek.app/Contents/MacOS/DeepSeek --bridge-selftest` 时运行。
-/// 直接驱动 Keychain 与原生网络层做真实 HTTPS 验证（不经过网页），
+/// 直接驱动隔离的本地凭据文件与原生网络层做真实 HTTPS 验证（不经过网页），
 /// 结果写入 /tmp/deepseek-selftest.json 后退出。不输出密钥内容。
 @MainActor
 final class BridgeSelfTest {
     static let shouldRun = ProcessInfo.processInfo.arguments.contains("--bridge-selftest")
 
-    static func runIfRequested(environment: AppEnvironment) {
+    static func runIfRequested() {
         guard shouldRun else { return }
         Task { @MainActor in
-            let tester = BridgeSelfTest(environment: environment)
+            let tester = BridgeSelfTest()
             await tester.run()
         }
     }
 
-    private let environment: AppEnvironment
     private var results: [[String: Any]] = []
-
-    private init(environment: AppEnvironment) {
-        self.environment = environment
-    }
 
     private func record(_ name: String, _ passed: Bool, _ detail: String) {
         results.append(["name": name, "passed": passed, "detail": detail])
@@ -29,22 +24,31 @@ final class BridgeSelfTest {
     }
 
     private func run() async {
-        let keychain = environment.keychain
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("deepdesk-selftest-credentials-\(UUID().uuidString)", isDirectory: true)
+        let credentials = LocalCredentialStore(directory: directory)
+        let network = ApiNetworkService(credentials: credentials)
 
-        // 1. Keychain 基础写/查/删
         do {
-            try keychain.save("sk-selftest-fake-key")
-            let exists = keychain.exists()
-            try keychain.delete()
-            let gone = !keychain.exists()
-            record("keychain.save-exists-delete", exists && gone, "exists=\(exists) deleted=\(gone)")
+            let fakeKey = "sk-selftest-fake-key"
+            try credentials.set(fakeKey)
+            let mode = try FileManager.default.attributesOfItem(atPath: directory.appendingPathComponent("api-key").path)
+            let permissions = (mode[.posixPermissions] as? NSNumber)?.intValue
+            let reopened = LocalCredentialStore(directory: directory)
+            let restored = reopened.loadForNativeRequestsOnly() == fakeKey
+            try reopened.set("sk-selftest-new-key")
+            let replaced = LocalCredentialStore(directory: directory).loadForNativeRequestsOnly() == "sk-selftest-new-key"
+            try credentials.set(nil)
+            let cleared = LocalCredentialStore(directory: directory).loadForNativeRequestsOnly() == nil
+            record("local-credential.lifecycle", restored && replaced && cleared && permissions == 0o600,
+                   "restored=\(restored), replaced=\(replaced), cleared=\(cleared), privateMode=\(permissions == 0o600)")
         } catch {
-            record("keychain.save-exists-delete", false, "error=\(String(describing: type(of: error)))")
+            record("local-credential.lifecycle", false, "credential file operation failed")
         }
 
         // 2. 无 Key 调用 models：预期 401 分类（不泄露密钥，只报错误码）
         do {
-            _ = try await environment.network.request(operation: "models", payload: [:])
+            _ = try await network.request(operation: "models", payload: [:])
             record("models.without-key", false, "unexpected success without key")
         } catch let error as ApiNetworkService.NativeApiError {
             let payload = error.payload
@@ -56,10 +60,10 @@ final class BridgeSelfTest {
 
         // 3. 假 Key 走真实 /models：预期服务端 401，错误分类正确
         do {
-            try? keychain.save("sk-selftest-invalid-key-000000")
-            defer { try? keychain.delete() }
+            try credentials.set("sk-selftest-invalid-key-000000")
+            defer { try? credentials.set(nil) }
             do {
-                _ = try await environment.network.request(operation: "models", payload: [:])
+                _ = try await network.request(operation: "models", payload: [:])
                 record("models.invalid-key", false, "unexpected success with fake key")
             } catch let error as ApiNetworkService.NativeApiError {
                 let payload = error.payload
@@ -74,7 +78,7 @@ final class BridgeSelfTest {
 
             // 4. 非法 operation 白名单
             do {
-                _ = try await environment.network.request(operation: "shell.exec", payload: [:])
+                _ = try await network.request(operation: "shell.exec", payload: [:])
                 record("operation.whitelist", false, "bogus operation accepted")
             } catch let error as ApiNetworkService.NativeApiError {
                 let code = error.payload["code"] as? String ?? ""
@@ -87,7 +91,7 @@ final class BridgeSelfTest {
             await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
                 var finished = false
                 do {
-                    let streamId = try environment.network.startStream(
+                    let streamId = try network.startStream(
                         body: ["model": "deepseek-flash", "messages": [["role": "user", "content": "hi"]]],
                         beta: false
                     ) { [weak self] _, event in
@@ -115,7 +119,10 @@ final class BridgeSelfTest {
                     continuation.resume()
                 }
             }
+        } catch {
+            record("models.invalid-key", false, "could not write the isolated fixture key")
         }
+        try? FileManager.default.removeItem(at: directory)
 
         // 6. 原生存储（T06）：临时数据库上验证 CRUD/blob/tombstone/staging/迁移校验
         await storageTests()

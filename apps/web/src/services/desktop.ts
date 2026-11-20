@@ -7,7 +7,7 @@ type NativeBridgeCall = (method: string, params?: Record<string, unknown>) => Pr
 declare global {
   interface Window {
     /** macOS 宿主在文档开始前注入的能力声明 */
-    __DEEPSEEK_DESKTOP__?: { platform: 'macos'; bridgeVersion: number; attachmentPreviewVersion?: number }
+    __DEEPSEEK_DESKTOP__?: { platform: 'macos'; bridgeVersion: number; attachmentPreviewVersion?: number; localCredentialVersion?: number }
     /** macOS Native Bridge v1：contracts/bridge-v1.d.ts */
     deepseekNativeCall?: NativeBridgeCall
     /** 原生存储迁移入口（原生设置界面驱动，见 migrateStorage.ts） */

@@ -6,7 +6,7 @@ export interface NativeInfo { platform:'macos'; version:string; build:string; br
 export type NativeMethod =
   | 'app.getInfo' | 'app.openExternal' | 'app.loginItem.get' | 'app.loginItem.set'
   | 'system.getTheme' | 'system.themeChanged'
-  | 'security.key.exists' | 'security.key.save' | 'security.key.delete'
+  | 'security.localCredential.v1.status' | 'security.localCredential.v1.set' | 'security.localCredential.v1.clear'
   | 'network.request' | 'network.stream.start' | 'network.stream.cancel'
   | 'network.upload.begin' | 'network.upload.append' | 'network.upload.finish' | 'network.upload.cancel'
   | 'import.pickArchive' | 'import.reportResult'
@@ -30,6 +30,14 @@ export type NativeMethod =
   // 以下协议已设计，macOS 端尚未实现；不得在前端假装成功：
   | 'file.pick' | 'file.save' | 'file.openDirectory'
   | 'sync.pair' | 'sync.status' | 'sync.start' | 'sync.stop';
+
+/** The native process never returns the API key. Revisions order updates across windows. */
+export interface LocalCredentialV1Status {
+  configured: boolean
+  revision: number
+}
+
+export interface LocalCredentialV1SetParams { key: string }
 
 export interface AttachmentPDFPreviewParams {
   blobUrl: string

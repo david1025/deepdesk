@@ -71,6 +71,6 @@ Sparkle 文档：https://sparkle-project.org/documentation/ 。
 - [ ] [V1 验收清单](06-v1-acceptance.md) 全部真实测试通过
 - [ ] 软件许可（MIT/第三方）与产品命名/Logo 权益已核对
 - [ ] Apple Developer ID 签名/公证已验证
-- [ ] 生产 API base URL / Keychain / 同步身份稳定
+- [ ] 生产 API base URL / 本地凭据 / 同步身份稳定
 - [ ] Sparkle 正式签名更新端到端验证
 - [ ] 灰度/回滚与旧版数据库备份策略已验证

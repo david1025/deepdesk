@@ -33,6 +33,7 @@ declare const styles: {
   readonly "importConfirmText": string;
   readonly "deleteConfirm": string;
   readonly "deleteActions": string;
+  readonly "apiKeyHint": string;
 };
 export = styles;
 

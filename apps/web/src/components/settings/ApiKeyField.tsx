@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { IconEditOutline16 } from '../base/icons.js'
+import { isMacDesktop } from '../../services/desktop.js'
 import { useSettings } from '../../services/settings.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { IconButton } from '../base/IconButton.js'
@@ -77,6 +78,7 @@ export const ApiKeyField = ({ editor }: { editor: ApiKeyEditor }) => {
             ) : null}
           </div>
         )}
+        {isMacDesktop() ? <div className={styles.apiKeyHint}>{t('apiKeyLocalHint')}</div> : null}
         {showInput && form.error ? <div className={styles.error}>{form.error}</div> : null}
       </div>
     </div>

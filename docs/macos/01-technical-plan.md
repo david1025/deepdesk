@@ -25,7 +25,7 @@ macOS App (SwiftUI / AppKit)
 │   └── shared React Chat UI + DesktopPlatformAdapter
 ├── NativeBridge: origin + main-frame + method/parameter whitelist
 ├── NativeNetworking: URLSession, SSE / Files / ASR / TTS, cancel
-├── Keychain: API Key / device pairing credentials
+├── Local credentials: private per-user API Key file
 ├── LocalStorage: SQLite (session + operations) / attachment blobs + migration
 ├── Backup: full ZIP with manifest, optional user-supplied encryption
 ├── LAN Sync: Bonjour discovery / paired TLS / incremental exchange
@@ -69,10 +69,10 @@ V1 **目标最终存储**：SQLite 是正式会话存储，原件为 Application
 - 旧 Windows 到 Mac 的跨设备迁移，使用经验证的导出归档；原 chat-demo v3 只保证导出原图片，不包含原非图片附件/API Key/完整设置，故**完整迁移优先开发 v4 导出**。
 - 索引/消息树/当前分支/状态/附件下载内容必须可回放；不允许简单将消息树压平成聊天文本。
 
-## 7. 网络与 Keychain
+## 7. 网络与本地凭据
 
-- API Key 由 Web 用户输入后一次性写入 Keychain；前端内存只用于输入瞬间；迁移旧 localStorage 时成功保存后删除明文并清理页面设置引用。
-- Web 通过 `network.*` Bridge 请求原生 URLSession，Swift 从 Keychain 拿 Key 发起 HTTPS 请求。仅允许配置的 DeepSeek 域名与完整 HTTPS 路径；禁自定义不可信 API 基址，若必须支持需做明确用户确认与 allowlist。
+- API Key 由 Web 用户输入后交给 Mac 原生端，原子保存到 Application Support 中的私有凭据文件，重启恢复。前端只保留配置状态，启动时清理旧网页凭据缓存。
+- Web 通过 `network.*` Bridge 请求原生 URLSession，Swift 从本地凭据服务取得 Key 发起 HTTPS 请求。仅允许配置的 DeepSeek 域名与完整 HTTPS 路径；禁自定义不可信 API 基址，若必须支持需做明确用户确认与 allowlist。
 - 原生 SSE 维护 requestId、取消句柄、重试策略、状态码、上传进度、错误映射；消息增量通过 IPC 事件推给 Web，Web 原有解析器复用或在 adapter 中翻译。
 - Messages / Files / Models / ASR / TTS 统一入该层。保证停止回答时真正取消底层 task，不能只关闭 UI。
 - API Key 不进入 Web 导出、日志、异常报告、局域网传输、应用更新清单。对敏感系统错误做脱敏。

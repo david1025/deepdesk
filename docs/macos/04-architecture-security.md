@@ -5,7 +5,7 @@
 ```
 Untrusted internet (DeepSeek HTTPS / external websites)
         | URLSession + TLS (hostname validation)
-Mac native host (Keychain + database + filesystem + sync)
+Mac native host (local credential + database + filesystem + sync)
         | trusted command-only, main-frame-only bridge
 WKWebView bundled UI (trusted first party JS only)
         | sanitization
@@ -34,7 +34,7 @@ Native reply 格式：
 { "ok": false, "error": "invalid-request" }
 ```
 
-Swift 服务只返回允许的字段，不回传 Keychain 密钥。耗时请求不可在 WKScriptMessageHandler 回调中同步阻塞主线程；Bridge 返回 requestId，后台处理并异步分发事件。
+Swift 服务只返回允许的字段，不回传 API Key。耗时请求不可在 WKScriptMessageHandler 回调中同步阻塞主线程；Bridge 返回 requestId，后台处理并异步分发事件。
 
 - `network.stream.start`: 接受 `requestId`, `messages`, `model`, `options`；返回 `{streamId}`。
 - `network.stream.cancel`: 接受 `{streamId}`；取消 URLSession 任务；终态必须唯一。
@@ -42,13 +42,11 @@ Swift 服务只返回允许的字段，不回传 Keychain 密钥。耗时请求�
 - `file.pick/save`: 采用文件选择器；不可接受任意绝对路径覆写。
 - `sync.pair`: 用户在 Mac/另一设备都确认短码；不能无提示开始同步。
 
-## 3. Keychain
+## 3. Mac API Key
 
-1. 移入原 Web 前先检查旧 localStorage 是否存在 Key。
-2. 首次运行一次性迁移，原生成功保存 -> 确认存在 -> 删除原明文 -> 重新加载配置，不保存明文到日志。
-3. NativeNetworking 在本地读密钥；JS 没有 `security.key.get`。
-4. Keychain 服务采用最终稳定 Bundle ID；签名 Team 变化、Bundle ID 变化会影响访问，升级流程必须涵盖密钥恢复体验。
-5. 配对凭据单独使用 Keychain 账户记录，严禁复用 API Key 或同步成聊天附件。
+1. 用户在设置中输入 Key。原生进程原子写入 Application Support 下的独立凭据文件，密钥在该文件中为明文，目录模式为 0700，文件模式为 0600。保存成功后通知所有窗口，重启时从文件恢复。
+2. NativeNetworking 使用由原生端从本机凭据文件加载的 Key。网页接收配置状态，旧网页 Key 和标记在宿主启动时清除。
+3. 旧钥匙串 API 条目保留，Mac API 流程不访问它。配对凭据使用独立机制，禁止复用 API Key 或同步成附件。
 
 ## 4. 数据安全
 

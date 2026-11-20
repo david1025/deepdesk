@@ -19,7 +19,7 @@
 4. 将 Windows 特有调用（`window.chrome.webview`, Electron ipcRenderer 等）找出，汇总为 `DesktopPlatformAdapter`；新增 Mac Adapter，保证组件层只消费统一接口。
 5. 路由图/资源 `publicPath: auto` 与相对资源路径必须正常；用 `./scripts/install-web-dist.sh apps/web/dist` 更新 Mac 包内资源。
 6. Mac 上 `./scripts/bootstrap-macos.sh` 生成工程；Debug 打开，验证真正加载的是定制 Web，而不是占位页。
-7. 对照完整功能表，逐项替换 API 与存储适配：先确保聊天功能不回退，再统一到 Keychain + NativeNetworking + SQLite。
+7. 对照完整功能表，逐项替换 API 与存储适配：先确保聊天功能不回退，再统一到 原生本地凭据 + NativeNetworking + SQLite。
 8. 用 v3 ZIP 进行基本聊天迁移，用 v4 新备份方式恢复**非图片原件**和完整本地状态；迁移成功前保留原归档可回滚。
 9. 实现 Mac Native About/Update/Tray 类功能，但不要重用 Windows 右上角标题栏组件；Mac 使用原生红黄绿控件。
 10. 执行所有发布门禁、打包、签名、公证、升级回归。
@@ -30,7 +30,7 @@
 
 | 上游路径 | 当前作用 | Mac 迁移要求 |
 |---|---|---|
-| `src/services/api/client.ts` | fetch、models、Messages、Files | 抽成 ApiTransport；Mac 使用 Native URLSession + Keychain |
+| `src/services/api/client.ts` | fetch、models、Messages、Files | 抽成 ApiTransport；Mac 使用 Native URLSession + 本地凭据 |
 | `src/services/api/sse.ts` | SSE 解析 | 保持事件语义和取消行为；Native stream 事件必须正确翻译 |
 | `src/services/api/speech.ts` | ASR/TTS | 走原生代理；测试 PCM/音频流 |
 | `src/services/speech/recorder.ts` | getUserMedia / WAV | 优先原逻辑验证，不支持则 native AVAudioEngine |
@@ -69,7 +69,7 @@ Mac Adapter 使用 `window.deepseekNativeCall(method, params)` + 事件订阅。
 
 ## F. API 迁移的顺序
 
-1. 只在 JS 中收集 API Key，然后 `security.key.save` 放 Keychain，删除旧 localStorage 明文。
+1. 只在 JS 中收集 API Key，然后用 `security.localCredential.v1.set` 交给原生本地凭据，清理旧 localStorage 凭据缓存。
 2. Native API 实现 verify `/models`、stream `/anthropic/v1/messages`、Files 上传、ASR、TTS、取消、错误分类；严格限制 API URL。
 3. Bridge `network.stream.start/cancel` 发送 streamId/requestId；Web 监听 `nativeStreamEvent`。处理 SSE 事件边界、多行 data、空行、ping、错误、完成与取消。
 4. 网页端删除直接的跨域 API fetch；在禁网、401、429、超时、取消中测试。禁止 API Key 从 native 回传 Web。
@@ -77,6 +77,6 @@ Mac Adapter 使用 `window.deepseekNativeCall(method, params)` + 事件订阅。
 ## G. 结束条件
 
 - 用户已有 Windows 定制功能无回退；同时 Mac 原生功能齐全。
-- 经真实 Mac（arm64/Intel）编译/验收，数据和密钥可跨重启/升级保留。
+- 经真实 Mac（arm64/Intel）编译/验收，聊天数据可跨重启和升级保留，Mac API Key 在保存后跨重启恢复。
 - 安装包已签名、公证，Sparkle 更新旧版到新版可用。
 - Win↔Mac↔Android 三端经配对、安全互通与数据一致性验证。

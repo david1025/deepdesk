@@ -56,7 +56,7 @@ struct SettingsView: View {
                 HStack {
                     Text("API Key")
                     Spacer()
-                    Text(environment.keychain.exists() ? "已保存在 Keychain" : "未配置")
+                    Text(environment.credentialConfigured ? "已保存在本机" : "未配置")
                         .foregroundStyle(.secondary)
                 }
                 HStack {
