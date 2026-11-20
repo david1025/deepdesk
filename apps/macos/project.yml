@@ -43,7 +43,7 @@ targets:
         INFOPLIST_FILE: Config/Info.plist
         CODE_SIGN_ENTITLEMENTS: Config/DeepSeekMac.entitlements
         GENERATE_INFOPLIST_FILE: NO
-        CURRENT_PROJECT_VERSION: 3
+        CURRENT_PROJECT_VERSION: 4
         CODE_SIGN_STYLE: Automatic
         ENABLE_HARDENED_RUNTIME: YES
       configs:

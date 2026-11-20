@@ -2,12 +2,12 @@
 
 [简体中文](README.zh-CN.md)
 
-## Download v0.2.0-preview.3 pre-release
+## Download v1.1.0 pre-release
 
-- [Windows x64 installer (.exe)](https://github.com/david1025/deepdesk/releases/download/v0.2.0-preview.3/DeepDesk-Setup-0.2.0-preview.3-x64.exe)
-- [macOS universal disk image (.dmg)](https://github.com/david1025/deepdesk/releases/download/v0.2.0-preview.3/DeepDesk-0.2.0-preview.3-macOS-universal.dmg) for Apple silicon and Intel
+- [Windows x64 installer (.exe)](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-x64.exe)
+- [macOS universal disk image (.dmg)](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-1.1.0-macOS-universal.dmg) for Apple silicon and Intel
 
-The macOS preview is ad hoc signed and has not been notarized. [Release notes](https://github.com/david1025/deepdesk/releases/tag/v0.2.0-preview.3)
+The macOS preview is ad hoc signed and has not been notarized. [Release notes](https://github.com/david1025/deepdesk/releases/tag/v1.1.0)
 
 DeepDesk is an independent desktop client for the DeepSeek API on Windows and macOS. Its shared React and TypeScript chat interface is adapted from [DeepSeek chat-demo](https://github.com/deepseek-ai/chat-demo). Windows hosts it in WPF and WebView2. macOS hosts it in SwiftUI, AppKit, and WKWebView.
 

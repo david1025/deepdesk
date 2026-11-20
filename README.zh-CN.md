@@ -2,12 +2,12 @@
 
 [English](README.md)
 
-## 下载 v0.2.0-preview.3 预发布版
+## 下载 v1.1.0 预发布版
 
-- [Windows x64 安装包（.exe）](https://github.com/david1025/deepdesk/releases/download/v0.2.0-preview.3/DeepDesk-Setup-0.2.0-preview.3-x64.exe)
-- [macOS 通用磁盘镜像（.dmg）](https://github.com/david1025/deepdesk/releases/download/v0.2.0-preview.3/DeepDesk-0.2.0-preview.3-macOS-universal.dmg)，适用于 Apple 芯片和 Intel Mac
+- [Windows x64 安装包（.exe）](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-Setup-1.1.0-x64.exe)
+- [macOS 通用磁盘镜像（.dmg）](https://github.com/david1025/deepdesk/releases/download/v1.1.0/DeepDesk-1.1.0-macOS-universal.dmg)，适用于 Apple 芯片和 Intel Mac
 
-macOS 预览包采用临时签名，未经 Apple 公证。 [发布说明](https://github.com/david1025/deepdesk/releases/tag/v0.2.0-preview.3)
+macOS 预览包采用临时签名，未经 Apple 公证。 [发布说明](https://github.com/david1025/deepdesk/releases/tag/v1.1.0)
 
 DeepDesk 是适用于 Windows 和 macOS 的独立 DeepSeek API 桌面客户端。两端共用的 React 和 TypeScript 聊天界面源自 [DeepSeek chat-demo](https://github.com/deepseek-ai/chat-demo)。Windows 使用 WPF 和 WebView2，macOS 使用 SwiftUI、AppKit 和 WKWebView。
 
