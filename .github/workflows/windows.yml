@@ -12,7 +12,18 @@ concurrency:
 
 jobs:
   build:
-    runs-on: windows-latest
+    name: Windows ${{ matrix.arch }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-latest
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    env:
+      BUILD_ARCH: ${{ matrix.arch }}
     steps:
       - uses: actions/checkout@v4
 
@@ -40,60 +51,122 @@ jobs:
       - name: Build WPF host
         run: dotnet build apps/windows/src/DeepDesk/DeepDesk.csproj -c Release
 
-      - name: Publish lightweight Windows x64 app
-        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/DeepDesk-win-x64-lite
+      - name: Publish lightweight Windows app
+        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-$env:BUILD_ARCH --self-contained false -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/DeepDesk-win-$env:BUILD_ARCH-lite
 
-      - name: Publish self-contained Windows x64 app
-        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=false -o artifacts/DeepDesk-win-x64
-
-      - name: Install Inno Setup
-        shell: pwsh
-        run: |
-          choco install innosetup --yes --no-progress
-          if (-not (Test-Path "C:\Program Files (x86)\Inno Setup 6\ISCC.exe")) {
-            throw "Inno Setup compiler was not installed."
-          }
+      - name: Publish self-contained Windows app
+        run: dotnet publish apps/windows/src/DeepDesk/DeepDesk.csproj -c Release -r win-$env:BUILD_ARCH --self-contained true -p:PublishSingleFile=false -o artifacts/DeepDesk-win-$env:BUILD_ARCH
 
       - name: Compile Windows installer
         shell: pwsh
         run: |
-          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" apps/windows/installer/DeepDesk.iss
+          $compiler = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $compiler)) {
+            choco install innosetup --yes --no-progress
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
+          & $compiler "/DBuildArch=$env:BUILD_ARCH" apps/windows/installer/DeepDesk.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-      - name: Verify app and installer release versions
+      - name: Verify Windows package
         shell: pwsh
         run: |
-          $expected = (Get-Content VERSION -Raw).Trim()
-          $paths = @(
-            "artifacts/DeepDesk-win-x64/DeepDesk.exe"
-            "artifacts/installer/DeepDesk-Setup-${expected}-x64.exe"
-          )
-          foreach ($path in $paths) {
+          function Get-PeMachine($path) {
+            $reader = [IO.BinaryReader]::new([IO.File]::OpenRead($path))
+            try {
+              if ($reader.ReadUInt16() -ne 0x5A4D) { throw "Invalid DOS header in $path" }
+              $reader.BaseStream.Position = 0x3C
+              $reader.BaseStream.Position = $reader.ReadUInt32()
+              if ($reader.ReadUInt32() -ne 0x00004550) { throw "Invalid PE header in $path" }
+              return $reader.ReadUInt16()
+            } finally {
+              $reader.Dispose()
+            }
+          }
+
+          $version = (Get-Content VERSION -Raw).Trim()
+          $app = "artifacts/DeepDesk-win-$env:BUILD_ARCH"
+          $installer = "artifacts/installer/DeepDesk-Setup-$version-$env:BUILD_ARCH.exe"
+          foreach ($path in @("$app/DeepDesk.exe", $installer)) {
             # Inno Setup pads the version resource string with trailing spaces.
             $actual = (Get-Item $path).VersionInfo.ProductVersion.TrimEnd()
-            if ($actual -cne $expected) { throw "Expected $expected in $path, got $actual" }
+            if ($actual -cne $version) { throw "Expected $version in $path, got $actual" }
+          }
+
+          $machine = @{ x64 = 0x8664; arm64 = 0xAA64 }[$env:BUILD_ARCH]
+          $loader = "$app/WebView2Loader.dll"
+          if (-not (Test-Path $loader)) {
+            $loader = "$app/runtimes/win-$env:BUILD_ARCH/native/WebView2Loader.dll"
+          }
+          foreach ($path in @("$app/DeepDesk.exe", "$app/coreclr.dll", $loader)) {
+            $actual = Get-PeMachine $path
+            if ($actual -ne $machine) { throw "Unexpected PE machine $actual in $path" }
+          }
+
+      - name: Install and launch on Windows ARM64
+        if: matrix.arch == 'arm64'
+        shell: pwsh
+        timeout-minutes: 4
+        run: |
+          if ($env:RUNNER_ARCH -ne 'ARM64') { throw "Expected a Windows ARM64 runner" }
+          $installer = Get-Item artifacts/installer/*-arm64.exe
+          $setupLog = Join-Path $env:RUNNER_TEMP 'DeepDesk-setup.log'
+          $setup = Start-Process $installer.FullName -ArgumentList @(
+            '/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', "/LOG=`"$setupLog`""
+          ) -PassThru -Wait
+          if ($setup.ExitCode -ne 0) {
+            Get-Content $setupLog -Tail 30
+            throw "Installer exited with $($setup.ExitCode)"
+          }
+
+          $installedExe = Join-Path $env:LOCALAPPDATA 'Programs\DeepDesk\DeepDesk.exe'
+          $publishedExe = 'artifacts/DeepDesk-win-arm64/DeepDesk.exe'
+          if ((Get-FileHash $installedExe).Hash -ne (Get-FileHash $publishedExe).Hash) {
+            throw 'Installed app differs from the verified ARM64 build'
+          }
+
+          $profile = Join-Path $env:LOCALAPPDATA 'DeepDesk\WebView2'
+          $log = Join-Path $env:LOCALAPPDATA 'DeepDesk\logs\application.log'
+          $app = Start-Process $installedExe -PassThru
+          try {
+            for ($attempt = 0; $attempt -lt 60; $attempt++) {
+              Start-Sleep -Seconds 1
+              $app.Refresh()
+              if ($app.HasExited) { throw "DeepDesk exited with $($app.ExitCode)" }
+              if ((Test-Path $log) -and (Select-String -Path $log -Pattern 'Startup failed:' -Quiet)) {
+                throw 'DeepDesk reported a startup failure'
+              }
+              if ($app.MainWindowHandle -ne 0 -and (Test-Path "$profile/EBWebView/Default/Preferences")) {
+                Write-Host 'Installed ARM64 app opened a window and initialized WebView2.'
+                exit 0
+              }
+            }
+            throw 'Timed out waiting for the DeepDesk window and WebView2 profile'
+          } finally {
+            if (-not $app.HasExited) { Stop-Process -Id $app.Id -Force }
+            if (Test-Path $log) { Get-Content $log -Tail 20 }
           }
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: DeepDesk-Setup-x64
-          path: artifacts/installer/*.exe
+          name: DeepDesk-Setup-${{ matrix.arch }}
+          path: artifacts/installer/*-${{ matrix.arch }}.exe
           if-no-files-found: error
           retention-days: 30
 
-      - name: Upload lightweight Windows x64 build
+      - name: Upload lightweight Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DeepDesk-win-x64-lite
-          path: artifacts/DeepDesk-win-x64-lite/
+          name: DeepDesk-win-${{ matrix.arch }}-lite
+          path: artifacts/DeepDesk-win-${{ matrix.arch }}-lite/
           if-no-files-found: error
           retention-days: 14
 
-      - name: Upload self-contained Windows x64 build
+      - name: Upload self-contained Windows build
         uses: actions/upload-artifact@v4
         with:
-          name: DeepDesk-win-x64
-          path: artifacts/DeepDesk-win-x64/
+          name: DeepDesk-win-${{ matrix.arch }}
+          path: artifacts/DeepDesk-win-${{ matrix.arch }}/
           if-no-files-found: error
           retention-days: 14
