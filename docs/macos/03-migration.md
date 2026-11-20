@@ -67,6 +67,12 @@ Mac Adapter 使用 `window.deepseekNativeCall(method, params)` + 事件订阅。
 - 原有 Windows 文件系统、WebView2、Mac WebKit 的 IndexedDB **不能直接互相复制**；通过格式化导出归档或同步协议交换。
 - 跨 origin 升级：切换之前确保导出+验收，再导入新存储；不能直接换 Bundle ID/资源 scheme 后让用户以为旧对话还在。
 
+## macOS Bundle ID 升级
+
+新安装使用 `com.david.deepdesk`。首次启动时，在原生数据库和 WebKit 打开之前，将旧版 Application Support 和 WebKit 目录复制到新标识对应的路径。Application Support 包含 SQLite、原附件及本机保存的 API Key，WebKit 目录包含 IndexedDB 和网页偏好。
+
+每个目录通过同目录临时快照原子就位，已存在的新版目录优先使用。旧版正在运行或复制失败时，启动会提示并退出，重新打开可继续尚未完成的迁移。旧目录保留以供回退。
+
 ## F. API 迁移的顺序
 
 1. 只在 JS 中收集 API Key，然后用 `security.localCredential.v1.set` 交给原生本地凭据，清理旧 localStorage 凭据缓存。

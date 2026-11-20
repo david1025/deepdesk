@@ -118,6 +118,11 @@ Run on the target Windows machine with a real API key. Record app version, Windo
 - [ ] Confirm installer publisher/signature warning is documented until signing is configured.
 
 
+### App identity upgrade
+
+- [ ] On Windows, install the previous build, create a branched conversation with an attachment, save an API key, and change a setting. Run the new installer as the same Windows user. Verify it updates the same installation and that the conversation, attachment, API key and setting still work after restart.
+- [ ] Launch from the updated Start menu shortcut and verify Windows groups the window under `com.david.deepdesk`. Check the desktop shortcut if that installer task was selected.
+
 ## Stage 4 — First-run UI and release acceptance
 
 - [ ] First-run welcome dialog uses modern custom XAML styling, rounded card, consistent typography and clear primary/secondary actions.

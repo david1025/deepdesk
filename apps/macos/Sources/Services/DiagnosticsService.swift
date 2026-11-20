@@ -17,7 +17,7 @@ final class DiagnosticsService {
     private init() {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
         logDirectory = base
-            .appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.example.deepseekmac", isDirectory: true)
+            .appendingPathComponent(Bundle.main.bundleIdentifier ?? BundleDataMigration.bundleIdentifier, isDirectory: true)
             .appendingPathComponent("Logs", isDirectory: true)
         try? FileManager.default.createDirectory(at: logDirectory, withIntermediateDirectories: true)
     }

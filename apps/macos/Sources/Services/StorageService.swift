@@ -72,7 +72,7 @@ final class StorageService: @unchecked Sendable {
     }
 
     private static func bundleFolder() -> String {
-        Bundle.main.bundleIdentifier ?? "com.example.deepseekmac"
+        Bundle.main.bundleIdentifier ?? BundleDataMigration.bundleIdentifier
     }
 
     // MARK: - 状态

@@ -29,7 +29,7 @@ final class LocalCredentialStore {
 
     static func defaultDirectory() -> URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent(Bundle.main.bundleIdentifier ?? "com.example.deepseekmac", isDirectory: true)
+        return base.appendingPathComponent(Bundle.main.bundleIdentifier ?? BundleDataMigration.bundleIdentifier, isDirectory: true)
             .appendingPathComponent("Credentials", isDirectory: true)
     }
 

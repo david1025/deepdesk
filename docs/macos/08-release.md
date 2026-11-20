@@ -10,7 +10,7 @@ brew install xcodegen
 open artifacts/macos/Build/Products/Debug/DeepSeek.app
 ```
 
-Debug 的 Bundle ID `com.example.deepseekmac` 是占位，务必在发布前设定正式 ID，并在后续版本中保持稳定。
+Debug 和 Release 的 Bundle ID 均为 `com.david.deepdesk`。旧数据目录的升级流程见 [迁移手册](03-migration.md)。
 
 ## 2. 正式 Release 前必改
 

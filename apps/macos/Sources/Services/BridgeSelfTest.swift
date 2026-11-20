@@ -126,6 +126,7 @@ final class BridgeSelfTest {
 
         // 6. 原生存储（T06）：临时数据库上验证 CRUD/blob/tombstone/staging/迁移校验
         await storageTests()
+        bundleMigrationTests()
 
         let output: [String: Any] = [
             "timestamp": ISO8601DateFormatter().string(from: Date()),
@@ -139,6 +140,44 @@ final class BridgeSelfTest {
         }
         NSLog("selftest complete: %d checks", results.count)
         exit(results.allSatisfy { ($0["passed"] as? Bool) == true } ? 0 : 3)
+    }
+
+    private func bundleMigrationTests() {
+        let manager = FileManager.default
+        let library = manager.temporaryDirectory.appendingPathComponent("deepdesk-bundle-test-\(UUID().uuidString)")
+        defer { try? manager.removeItem(at: library) }
+        let oldID = BundleDataMigration.legacyBundleIdentifier
+        let newID = BundleDataMigration.bundleIdentifier
+        let support = library.appendingPathComponent("Application Support")
+        let webKit = library.appendingPathComponent("WebKit")
+        let oldCredentials = support.appendingPathComponent(oldID).appendingPathComponent("Credentials")
+        let newCredentials = support.appendingPathComponent(newID).appendingPathComponent("Credentials")
+        let oldWeb = webKit.appendingPathComponent(oldID)
+        let newWeb = webKit.appendingPathComponent(newID)
+        let marker = Data("synthetic website data".utf8)
+        do {
+            try LocalCredentialStore(directory: oldCredentials).set("synthetic-old-key")
+            try manager.createDirectory(at: oldWeb, withIntermediateDirectories: true)
+            try marker.write(to: oldWeb.appendingPathComponent("test"))
+            var blocked = false
+            do {
+                try BundleDataMigration.migrate(in: library, from: oldID, to: newID) { true }
+            } catch BundleDataMigration.MigrationError.legacyRunning {
+                blocked = !manager.fileExists(atPath: newCredentials.path)
+            }
+            try BundleDataMigration.migrate(in: library, from: oldID, to: newID) { false }
+            let migratedKey = LocalCredentialStore(directory: newCredentials)
+            let restored = migratedKey.loadForNativeRequestsOnly() == "synthetic-old-key"
+            let copiedWeb = try Data(contentsOf: newWeb.appendingPathComponent("test")) == marker
+            try migratedKey.set("synthetic-new-key")
+            try BundleDataMigration.migrate(in: library, from: oldID, to: newID) { false }
+            let preserved = LocalCredentialStore(directory: newCredentials).loadForNativeRequestsOnly() == "synthetic-new-key"
+                && LocalCredentialStore(directory: oldCredentials).loadForNativeRequestsOnly() == "synthetic-old-key"
+            record("bundle-data.migration", blocked && restored && copiedWeb && preserved,
+                   "busyBlocked=\(blocked), credentialRestored=\(restored), webCopied=\(copiedWeb), bothVersionsPreserved=\(preserved)")
+        } catch {
+            record("bundle-data.migration", false, "migration fixture failed")
+        }
     }
 
     // MARK: - T06 存储自检

@@ -32,7 +32,7 @@
 
 ## 安全和发布注意事项
 
-- `com.example.deepseekmac` 是占位 Bundle ID，正式发布前必须改为自有 ID，之后不要随意变更。
+- 当前 Bundle ID 为 `com.david.deepdesk`。旧版使用 `com.example.deepseekmac`，数据目录升级流程见 [迁移手册](03-migration.md)。
 - `Info.plist` 里没有配置假的更新 URL 或假的更新公钥。请按文档生成正式配置。
 - Debug 版可不签名；正式分发应使用 Developer ID 签名、公证和 Sparkle EdDSA 签名。
 - 目前仅 Keychain 底层已落文件，原版 Web 仍然直接调用 API。正式 V1 必须改为原生代理请求，使 Key 不返回给 Web JS。

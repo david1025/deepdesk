@@ -38,7 +38,7 @@ targets:
       Release: Config/Version.generated.xcconfig
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.example.deepseekmac
+        PRODUCT_BUNDLE_IDENTIFIER: com.david.deepdesk
         PRODUCT_NAME: DeepSeek
         INFOPLIST_FILE: Config/Info.plist
         CODE_SIGN_ENTITLEMENTS: Config/DeepSeekMac.entitlements

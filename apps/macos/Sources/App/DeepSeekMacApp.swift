@@ -4,8 +4,26 @@ import AppKit
 @main
 struct DeepSeekMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var environment = AppEnvironment()
+    @StateObject private var environment: AppEnvironment
     @Environment(\.openWindow) private var openWindow
+
+    @MainActor
+    init() {
+        do {
+            try BundleDataMigration.prepareForLaunch()
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = "无法迁移旧版 DeepDesk 数据"
+            if case BundleDataMigration.MigrationError.legacyRunning = error {
+                alert.informativeText = "请完全退出旧版 DeepDesk，再打开新版。"
+            } else {
+                alert.informativeText = "请检查本机存储空间和目录权限，再重新打开 DeepDesk。旧版数据仍保留。"
+            }
+            alert.runModal()
+            exit(1)
+        }
+        _environment = StateObject(wrappedValue: AppEnvironment())
+    }
 
     var body: some Scene {
         WindowGroup("DeepSeek", id: "main") {
