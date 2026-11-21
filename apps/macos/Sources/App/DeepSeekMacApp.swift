@@ -5,7 +5,6 @@ import AppKit
 struct DeepSeekMacApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var environment: AppEnvironment
-    @Environment(\.openWindow) private var openWindow
 
     @MainActor
     init() {
@@ -53,7 +52,6 @@ struct DeepSeekMacApp: App {
 /// Cmd+W 关窗口不退出 / Cmd+Q 退出 / Cmd+0 主窗口 / Cmd+R 刷新前端。
 struct DeepSeekCommands: Commands {
     @ObservedObject var environment: AppEnvironment
-    @Environment(\.openWindow) private var openWindow
 
     var body: some Commands {
         // 文件菜单与官方 Harness 一致：只保留「关闭」。新建聊天/刷新等走网页 UI（⊕ 按钮），
@@ -135,18 +133,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        // 关闭最后窗口不断开应用：可从 Dock/菜单栏恢复
+        // 关闭最后一个窗口后保留进程，由 SwiftUI 的 WindowGroup 处理 Dock 重开。
         false
     }
-
-    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        if !flag {
-            NotificationCenter.default.post(name: .deepseekReopenMainWindow, object: nil)
-        }
-        return true
-    }
-}
-
-extension Notification.Name {
-    static let deepseekReopenMainWindow = Notification.Name("deepseek.reopen-main-window")
 }
